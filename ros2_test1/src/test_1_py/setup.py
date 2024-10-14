@@ -20,9 +20,11 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'hello_world = test_1_py.hello_world:main',
+            'test = test_1_py.test:main',
             'talker = test_1_py.publisher_test:main',
-            'listener = test_1_py.subscriber_test:main'
+            'listener = test_1_py.subscriber_test:main',
+            'service_member_function = test_1_py.service_member_function:main',
+            'client_member_function = test_1_py.client_member_function:main',
         ],
     },
 )
