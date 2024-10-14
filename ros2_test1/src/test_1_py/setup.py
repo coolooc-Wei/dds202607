@@ -20,6 +20,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
+            # 'venv = venv.venv:main',
             'test = test_1_py.test:main',
             'talker = test_1_py.publisher_test:main',
             'listener = test_1_py.subscriber_test:main',
