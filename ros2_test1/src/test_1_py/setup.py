@@ -25,6 +25,8 @@ setup(
             'listener = test_1_py.subscriber_test:main',
             'service_member_function = test_1_py.service_member_function:main',
             'client_member_function = test_1_py.client_member_function:main',
+            'listener_mit_odom = test_1_py.subscriber_mit_odom:main',
+            'listener_mit_cmd_vel = test_1_py.subscriber_mit_cmd_vel:main',
         ],
     },
 )
