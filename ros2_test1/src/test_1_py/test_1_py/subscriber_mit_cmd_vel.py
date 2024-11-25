@@ -17,6 +17,9 @@ class MinimalSubscriber(Node):
 
     def listener_callback(self, msg):
         self.get_logger().info(f"I heard: {msg = }")
+        # save the message to a file
+        with open('data/cmd_vel.txt', 'a') as f:
+            f.write(f"{msg}\n")
 
 
 def main(args=None):

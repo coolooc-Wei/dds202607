@@ -17,7 +17,8 @@ class MinimalSubscriber(Node):
 
     def listener_callback(self, msg):
         self.get_logger().info(f"I heard: {msg = }")
-
+        with open('data/odom.txt', 'a') as f:
+            f.write(f"{msg}\n")
 
 def main(args=None):
     rclpy.init(args=args)
