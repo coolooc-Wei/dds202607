@@ -1,27 +1,26 @@
-import os
 import rclpy
 from rclpy.node import Node
 
 from std_msgs.msg import String
-from nav_msgs.msg import Odometry
+from geometry_msgs.msg import Twist
 
 class MinimalSubscriber(Node):
 
     def __init__(self):
         super().__init__('minimal_subscriber')
         self.subscription = self.create_subscription(
-            Odometry,
-            'odom',
+            Twist,
+            'cmd_vel',
             self.listener_callback,
             10)
         self.subscription  # prevent unused variable warning
 
     def listener_callback(self, msg):
         self.get_logger().info(f"I heard: {msg = }")
-        if not os.path.exists('data/'):
-            os.makedirs('data/')
-        with open('data/odom.txt', 'a') as f:
+        # save the message to a file
+        with open('data/cmd_vel.txt', 'a') as f:
             f.write(f"{msg}\n")
+
 
 def main(args=None):
     rclpy.init(args=args)

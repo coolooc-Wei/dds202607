@@ -1,0 +1,9 @@
+[console_scripts]
+client_member_function = test_1_py.client_member_function:main
+listener = test_1_py.subscriber_test:main
+listener_mit_cmd_vel = test_1_py.subscriber_mit_cmd_vel:main
+listener_mit_odom = test_1_py.subscriber_mit_odom:main
+publisher_mit_odom_test = test_1_py.publisher_mit_test:main
+service_member_function = test_1_py.service_member_function:main
+talker = test_1_py.publisher_test:main
+test = test_1_py.test:main

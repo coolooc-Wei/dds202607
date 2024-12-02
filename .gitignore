@@ -3,3 +3,7 @@ ros2_test1/install/
 ros2_test1/log/
 ros2_test1/venv/
 ros2_test1/data/
+data/
+log/
+install/
+build/

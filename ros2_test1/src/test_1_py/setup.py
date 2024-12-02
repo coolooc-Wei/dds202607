@@ -27,6 +27,7 @@ setup(
             'client_member_function = test_1_py.client_member_function:main',
             'listener_mit_odom = test_1_py.subscriber_mit_odom:main',
             'listener_mit_cmd_vel = test_1_py.subscriber_mit_cmd_vel:main',
+            'publisher_mit_odom_test = test_1_py.publisher_mit_test:main',
         ],
     },
 )
