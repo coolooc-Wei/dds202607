@@ -1,13 +1,17 @@
 import rclpy
 from rclpy.node import Node
 
-from random import random
+import random
 from nav_msgs.msg import Odometry
+
+x = 0
+y = 0 
+z = 0
 
 class MinimalPublisher(Node):
 
     def __init__(self):
-        super().__init__('minimal_publisher')
+        super().__init__('random_publisher')
         self.publisher_ = self.create_publisher(Odometry, 'odom', 10)
         timer_period = 0.5  # seconds
         self.timer = self.create_timer(timer_period, self.timer_callback)
@@ -15,12 +19,15 @@ class MinimalPublisher(Node):
 
     def timer_callback(self):
 
+        global x
+        global y
+        global z
         msg = Odometry()
         msg.header.stamp = self.get_clock().now().to_msg()
         msg.header.frame_id = 'odom'
         msg.child_frame_id = 'base_link'
-        x=msg.pose.pose.position.x = 0.0
-        y=msg.pose.pose.position.y = 0.0
+        x=msg.pose.pose.position.x = x+random.uniform(0.0, 0.2)
+        y=msg.pose.pose.position.y = y+random.uniform(0.0, 0.2)
         z=msg.pose.pose.position.z = 0.0
         msg.pose.pose.orientation.x = 0.0
         msg.pose.pose.orientation.y = 0.0
