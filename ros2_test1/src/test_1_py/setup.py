@@ -21,14 +21,17 @@ setup(
     entry_points={
         'console_scripts': [
             'test = test_1_py.test:main',
-            'talker = test_1_py.publisher_test:main',
-            'listener = test_1_py.subscriber_test:main',
+            'publisher = test_1_py.publisher_test:main',
+            'subscriber = test_1_py.subscriber_test:main',
             'service_member_function = test_1_py.service_member_function:main',
             'client_member_function = test_1_py.client_member_function:main',
             'listener_mit_odom = test_1_py.subscriber_mit_odom:main',
             'listener_mit_cmd_vel = test_1_py.subscriber_mit_cmd_vel:main',
             'publisher_mit_odom_test = test_1_py.publisher_mit_test:main',
             'publisher_mit_random = test_1_py.publisher_mit_random:main',
+            'publisher_ras = test_1_py.publisher_rsa:main',
+            'subscriber_ras = test_1_py.subscriber_rsa:main',
+            'subscriber_ras_fail = test_1_py.subscriber_rsa_fail:main',
         ],
     },
 )

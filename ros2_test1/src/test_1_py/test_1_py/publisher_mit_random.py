@@ -6,7 +6,6 @@ from nav_msgs.msg import Odometry
 
 import numpy as np
 
-import numpy as np
 
 def get_rotation_quaternion(v1, v2):
     v2-=v1
@@ -28,15 +27,6 @@ def get_rotation_quaternion(v1, v2):
     z = sy * cp * cr - cy * sp * sr
 
     return [w, x, y, z]
-
-
-
-
-
-
-
-
-
 
 class MinimalPublisher(Node):
 

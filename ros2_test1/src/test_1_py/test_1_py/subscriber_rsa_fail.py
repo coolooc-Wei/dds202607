@@ -2,24 +2,34 @@ import rclpy
 from rclpy.node import Node
 
 from std_msgs.msg import String
-from geometry_msgs.msg import Twist
+
+import rsa
 
 class MinimalSubscriber(Node):
 
     def __init__(self):
         super().__init__('minimal_subscriber')
+        self.private_key = self.load_private_key()
         self.subscription = self.create_subscription(
-            Twist,
-            'cmd_vel',
+            String,
+            'topic_rsa',
             self.listener_callback,
             10)
         self.subscription  # prevent unused variable warning
 
+    def load_private_key(self):
+        with open('rsa_datas/private_2.pem', mode='rb') as privatefile:
+            keydata = privatefile.read()
+        private_key = rsa.PrivateKey.load_pkcs1(keydata)
+        return private_key
+
     def listener_callback(self, msg):
-        self.get_logger().info(f"I heard: {msg = }")
-        # save the message to a file
-        with open('data/cmd_vel.txt', 'a') as f:
-            f.write(f"{msg}\n")
+        try:
+            msg.data = bytes.fromhex(msg.data)
+            msg.data = rsa.decrypt(msg.data, self.private_key).decode()
+            self.get_logger().info(f"I heard: {msg.data}")
+        except rsa.DecryptionError:
+            self.get_logger().warning("DecryptionError")
 
 
 def main(args=None):
