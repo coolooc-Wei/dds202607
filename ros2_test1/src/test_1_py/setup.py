@@ -22,6 +22,7 @@ setup(
         'console_scripts': [
             'test = test_1_py.test:main',
             'publisher = test_1_py.publisher_test:main',
+            'publisher_long = test_1_py.publisher_test_long:main',
             'subscriber = test_1_py.subscriber_test:main',
             'service_member_function = test_1_py.service_member_function:main',
             'client_member_function = test_1_py.client_member_function:main',

@@ -15,17 +15,11 @@ class MinimalPublisher(Node):
 
     def timer_callback(self):
         msg = String()
-        msg.data = 'Hello World: %d' % self.i
+        for i in range(0, 10000):
+            msg.data += 'a'
         self.publisher_.publish(msg)
         self.get_logger().info('Publishing: "%s"' % msg.data)
         self.i += 1
-        
-        subscription_count = self.publisher_.get_subscription_count()
-        self.get_logger().info(f'Matched subscriptions count: {subscription_count}')
-
-        # matched_subscriptions = self.publisher_.get_matched_subscriptions()
-        # matched_count = len(matched_subscriptions)
-        # self.get_logger().info(f'Matched subscriptions count: {matched_count}')
 
 
 def main(args=None):

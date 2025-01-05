@@ -12,7 +12,7 @@ class MinimalSubscriber(Node):
             String,
             'topic',
             self.listener_callback,
-            10)
+            1000)
         self.subscription  # prevent unused variable warning
 
     def listener_callback(self, msg):
