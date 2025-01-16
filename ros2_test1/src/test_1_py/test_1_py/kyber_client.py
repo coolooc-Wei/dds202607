@@ -36,7 +36,7 @@ def main(args=None):
     shared_secret_client = client.decap_secret(ciphertext)
     # shared_secret_client = response.ciphertext
     minimal_client.get_logger().info(f"Shared secret: {shared_secret_client}")
-    print(f"{shared_secret_client =}")
+    # print(f"{shared_secret_client =}")
 
     f = open("kyber_keys/shared_secret_client.txt", "bw")
     f.write(shared_secret_client)
