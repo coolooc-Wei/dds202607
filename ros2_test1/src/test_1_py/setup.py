@@ -33,6 +33,9 @@ setup(
             'publisher_ras = test_1_py.publisher_rsa:main',
             'subscriber_ras = test_1_py.subscriber_rsa:main',
             'subscriber_ras_fail = test_1_py.subscriber_rsa_fail:main',
+            'publisher_test_once = test_1_py.publisher_test_once:main',
+            'kyber_server = test_1_py.kyber_server:main',
+            'kyber_client = test_1_py.kyber_client:main',
         ],
     },
 )

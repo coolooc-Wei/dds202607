@@ -41,6 +41,8 @@ with oqs.KeyEncapsulation(kemalg) as client:
         # Client generates its keypair
         public_key_client = client.generate_keypair()
 
+        print(type(public_key_client))
+
         # Optionally, the secret key can be obtained by calling export_secret_key()
         # and the client can later be re-instantiated with the key pair:
         # secret_key_client = client.export_secret_key()
@@ -57,6 +59,9 @@ with oqs.KeyEncapsulation(kemalg) as client:
         print(
             "\nShared secretes coincide:", shared_secret_client == shared_secret_server
         )
+
+        print(f"{shared_secret_client = }")
+        print(f"{shared_secret_server = }")
 
         # test for aes with shared secret in kem
 
