@@ -42,6 +42,8 @@ with oqs.KeyEncapsulation(kemalg) as client:
         public_key_client = client.generate_keypair()
 
         print(type(public_key_client))
+        public_key_client_base64 = base64.b64encode(public_key_client).decode('utf-8')
+        print(public_key_client_base64)
 
         # Optionally, the secret key can be obtained by calling export_secret_key()
         # and the client can later be re-instantiated with the key pair:
@@ -51,7 +53,10 @@ with oqs.KeyEncapsulation(kemalg) as client:
         # client = oqs.KeyEncapsulation(kemalg, secret_key_client)
 
         # The server encapsulates its secret using the client's public key
-        ciphertext, shared_secret_server = server.encap_secret(public_key_client)
+
+        public_key_client_from_base64 = base64.b64decode(public_key_client_base64)
+
+        ciphertext, shared_secret_server = server.encap_secret(public_key_client_from_base64)
 
         # The client decapsulates the server's ciphertext to obtain the shared secret
         shared_secret_client = client.decap_secret(ciphertext)

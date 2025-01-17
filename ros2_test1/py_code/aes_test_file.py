@@ -22,7 +22,7 @@ def aes_decrypt(encrypted_text, key):
 
 def main():
 
-    f = open('../kyber_keys/shared_secret_server.txt','br')
+    f = open('../kyber_keys/shared_secret_server.key','br')
     shared_secret_server = f.read()
     f.close()
 
@@ -45,14 +45,16 @@ def main():
 
     print(f"new key")
 
-    f = open('../kyber_keys/shared_secret_client.txt','br')
+    f = open('../kyber_keys/shared_secret_client_fail.key','br')
     shared_secret_client = f.read()
     f.close()
 
     key = shared_secret_client
-
-    decrypted = aes_decrypt(encrypted, key)  # 解密
-    print(f"解密後: {decrypted}")
+    try:
+        decrypted = aes_decrypt(encrypted, key)  # 解密
+        print(f"解密後: {decrypted}")
+    except Exception as e:
+        print(f"解密失敗: {e}")
 
 
 if __name__ == "__main__":

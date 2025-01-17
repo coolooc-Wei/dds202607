@@ -36,6 +36,9 @@ setup(
             'publisher_test_once = test_1_py.publisher_test_once:main',
             'kyber_server = test_1_py.kyber_server:main',
             'kyber_client = test_1_py.kyber_client:main',
+            'publisher_aes = test_1_py.publisher_aes:main',
+            'subscriber_aes = test_1_py.subscriber_aes:main',
+            'subscriber_aes_fail = test_1_py.subscriber_aes_fail:main',
         ],
     },
 )

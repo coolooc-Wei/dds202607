@@ -2,7 +2,7 @@ import rclpy
 from rclpy.node import Node
 from interfaces.srv import Kyber
 import oqs
-
+import base64
 
 class MinimalService(Node):
 
@@ -15,14 +15,15 @@ class MinimalService(Node):
 
     def kyber_server_callback(self, request, response):
 
-        public_key = b''.join(request.public_key)
+        public_key = base64.b64decode(request.public_key)
 
-        response.ciphertext, shared_secret_server = self.kyber_server.encap_secret(public_key)
+        ciphertext, shared_secret_server = self.kyber_server.encap_secret(public_key)
+        response.ciphertext = base64.b64encode(ciphertext).decode('utf-8')
         # ciphertext = "ciphertext"
         # self.get_logger().info(f'Incoming request: {request.public_key}')
         self.get_logger().info(f'Shared secret: {shared_secret_server}')
-
-        f = open("kyber_keys/shared_secret_server.txt", "bw")
+        self.get_logger().info(f'Shared secret: {base64.b64encode(shared_secret_server).decode("utf-8")}')
+        f = open("kyber_keys/shared_secret_server.key", "bw")
         f.write(shared_secret_server)
         f.close()
         return response
