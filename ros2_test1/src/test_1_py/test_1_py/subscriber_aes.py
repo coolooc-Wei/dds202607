@@ -21,7 +21,7 @@ class MinimalSubscriber(Node):
         self.subscription  # prevent unused variable warning
 
     def load_private_key(self):
-        with open('kyber_keys/shared_secret_client.key', mode='rb') as privatefile:
+        with open('kyber_keys/client/shared_secret_client.key', mode='rb') as privatefile:
             private_key = privatefile.read()
         return private_key
     

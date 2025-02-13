@@ -23,7 +23,7 @@ class MinimalService(Node):
         # self.get_logger().info(f'Incoming request: {request.public_key}')
         self.get_logger().info(f'Shared secret: {shared_secret_server}')
         self.get_logger().info(f'Shared secret: {base64.b64encode(shared_secret_server).decode("utf-8")}')
-        f = open("kyber_keys/shared_secret_server.key", "bw")
+        f = open("kyber_keys/server/shared_secret_server.key", "bw")
         f.write(shared_secret_server)
         f.close()
         return response

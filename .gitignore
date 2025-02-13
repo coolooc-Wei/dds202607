@@ -3,9 +3,9 @@ ros2_test1/install/
 ros2_test1/log/
 ros2_test1/venv/
 ros2_test1/data/
+ros2_test1/kyber_keys/
 data/
 log/
 install/
 build/
 liboqs-python/
-ros2_test1/kyber_keys/
