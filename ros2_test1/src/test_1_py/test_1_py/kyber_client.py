@@ -39,7 +39,7 @@ def main(args=None):
     minimal_client.get_logger().info(f'Shared secret: {base64.b64encode(shared_secret_client).decode("utf-8")}')
     # print(f"{shared_secret_client =}")
 
-    f = open("kyber_keys/shared_secret_client.key", "bw")
+    f = open("kyber_keys/client/shared_secret_client.key", "bw")
     f.write(shared_secret_client)
     f.close()
 

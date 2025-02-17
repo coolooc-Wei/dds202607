@@ -9,3 +9,4 @@ log/
 install/
 build/
 liboqs-python/
+.key
