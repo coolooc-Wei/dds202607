@@ -14,34 +14,36 @@ class MinimalClientAsync(Node):
             self.get_logger().info('service not available, waiting again...')
         self.req = Kyber.Request()
 
-    def send_request(self, kyber_public_key):
-        self.req.public_key = base64.b64encode(kyber_public_key).decode('utf-8')
+    def send_request(self):
+
+        client = oqs.KeyEncapsulation('Kyber512')
+        public_key_client = client.generate_keypair()
+
+
+        self.req.public_key = base64.b64encode(public_key_client).decode('utf-8')
         # self.req.public_key = "public_key"
         self.future = self.cli.call_async(self.req)
         rclpy.spin_until_future_complete(self, self.future)
-        return self.future.result()
+
+        res =  self.future.result()
+        ciphertext = base64.b64decode(res.ciphertext)
+        shared_secret_client = client.decap_secret(ciphertext)
+
+        self.get_logger().info(f"Shared secret: {shared_secret_client}")
+        self.get_logger().info(f'Shared secret: {base64.b64encode(shared_secret_client).decode("utf-8")}')
+
+        f = open("kyber_keys/client/shared_secret_client.key", "bw")
+        f.write(shared_secret_client)
+        f.close()
+
+        return shared_secret_client
 
 
 def main(args=None):
     rclpy.init(args=args)
 
     minimal_client = MinimalClientAsync()
-
-    client = oqs.KeyEncapsulation('Kyber512')
-    public_key_client = client.generate_keypair()
-
-    response = minimal_client.send_request(public_key_client)
-
-    ciphertext = base64.b64decode(response.ciphertext)
-    shared_secret_client = client.decap_secret(ciphertext)
-    # shared_secret_client = response.ciphertext
-    minimal_client.get_logger().info(f"Shared secret: {shared_secret_client}")
-    minimal_client.get_logger().info(f'Shared secret: {base64.b64encode(shared_secret_client).decode("utf-8")}')
-    # print(f"{shared_secret_client =}")
-
-    f = open("kyber_keys/client/shared_secret_client.key", "bw")
-    f.write(shared_secret_client)
-    f.close()
+    response = minimal_client.send_request()
 
     minimal_client.destroy_node()
     rclpy.shutdown()

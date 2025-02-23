@@ -42,6 +42,7 @@ setup(
             'kyber_client_subscriber = test_1_py.kyber_client_subscriber:main',
             'publisher_aes_pickle = test_1_py.publisher_aes_pickle:main',
             'subscriber_aes_pickle = test_1_py.subscriber_aes_pickle:main',
+            'subscriber_kyber_aes_pickle = test_1_py.subscriber_kyber_aes_pickle:main',
         ],
     },
 )
