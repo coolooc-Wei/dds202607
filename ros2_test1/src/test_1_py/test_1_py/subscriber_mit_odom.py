@@ -24,7 +24,7 @@ class MinimalSubscriber(Node):
         super().__init__('minimal_subscriber')
         self.subscription = self.create_subscription(
             Odometry,
-            'odom',
+            'unitree_go2_1/odom',
             self.listener_callback,
             10)
         self.subscription  # prevent unused variable warning
@@ -52,8 +52,8 @@ class MinimalSubscriber(Node):
         self.get_logger().info(f"I heard: {msg = }")
         # if not os.path.exists('data/'):
         #     os.makedirs('data/')
-        # with open('data/odom.txt', 'a') as f:
-        #     f.write(f"{msg}\n")
+        with open('data/mit_lab_data/unitree_go2_1_odom.txt', 'a') as f:
+            f.write(f"{msg}\n")
 
 def main(args=None):
     rclpy.init(args=args)
