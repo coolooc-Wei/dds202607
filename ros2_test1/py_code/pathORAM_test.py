@@ -1,6 +1,8 @@
 import math
 import random
 from os.path import split
+from traceback import print_exc
+
 
 class ORAM:
     def __init__(self, num_blocks):
@@ -8,7 +10,6 @@ class ORAM:
         self.path_count = 2 ** math.floor(math.log2(self.num_blocks))
         self.tree_map = [i for i in range(self.num_blocks)]
         self.path_map = [-1 for _ in range(self.num_blocks)]
-        self.path_list = [i+1 for i in range(self.path_count)]
 
         print(f"{self.num_blocks = }")
         print(f"{self.path_count = }")
@@ -17,75 +18,114 @@ class ORAM:
 
         self.update_path_map()
 
-    def debugger(func):
+    def pretty_print_mask(self, mask):
+        if mask == -1:
+            return "None Mask"
+        return f"{str(bin(mask))[2:]:0>{self.path_count}}"
+
+    def print_tree_node_ros_node_mask_mapping(self):
+        for tree_node, ros_node in enumerate(self.tree_map):
+            print(f"Tree Node {tree_node:>{3}} => ROS Node {ros_node:>{3}} : {self.pretty_print_mask(self.path_map[ros_node])}")
+
+
+    def debugger_data(func):
         def wrap(self, *args, **kwargs):
             print(f"\n{func.__name__}=>")
-            print(f"{self.tree_map = }")
-            print(f"{self.path_map = }")
+            self.print_tree_node_ros_node_mask_mapping()
+            print()
             res = func(self, *args, **kwargs)
             print(f"<={func.__name__}")
-            print(f"{self.tree_map = }")
-            print(f"{self.path_map = }")
+            self.print_tree_node_ros_node_mask_mapping()
             print()
             return res
-            
+
         return wrap
-        
-    @debugger
+
+    @debugger_data
     def update_path_map(self):
+
+
         path_count = 0
-        path_count_pow = 0
+        path_count_pow = 0 # power of 2 for path count
+        mask_count = self.path_count # number of bits in the mask
+        path_mask = 2 ** mask_count - 1 # mask for all paths
+
         for tree_node in range(self.num_blocks):
+
+            print(f"Tree Node {tree_node:>{3}} => Path Mask: {self.pretty_print_mask(path_mask)}")
             ros_node_num = self.tree_map[tree_node]
-            # print(f"{ros_node_num = }")
-            # print(f"{path_count = }, {path_count_pow = }")
-            split_num = self.path_count//(2**path_count_pow)
-            path_split = self.path_list[path_count*split_num:path_count*split_num + split_num]
-            # print(f"{split_num = }")
-            # print(f"{path_split = }")
-            # path = random.sample(path_split,1)[0]
-            # print(path)
-            self.path_map[ros_node_num] = path_split  # update ros_node_num -> path num
-            path_count+= 1
-            if path_count == 2**path_count_pow:
+            self.path_map[ros_node_num] = path_mask # assign the path mask to the ROS node
+
+            path_count += 1
+            path_mask = path_mask << mask_count # shift the mask left by the number of bits in the mask
+            if path_count == 2 ** path_count_pow:
                 path_count_pow += 1
                 path_count = 0
+                mask_count //= 2 # halve the mask count
+                path_mask = 2 ** mask_count - 1 # reset the path mask to cover the new mask count
 
-    @debugger
-    def get_path(self,path_num_1,path_num_2):
+    @debugger_data
+    def get_ros_node_from_path(self, path_num_1, path_num_2):
+
+        if path_num_1 <= 0 or path_num_1 > self.path_count:
+            raise ValueError(f"Path number {path_num_1} out of range. Must be between 1 and {self.path_count}.")
+
+        if path_num_2 <= 0 or path_num_2 > self.path_count:
+            raise ValueError(f"Path number {path_num_2} out of range. Must be between 1 and {self.path_count}.")
+
+        # Convert path numbers to masks
+        path_1 = 1 << (path_num_1 - 1)
+        path_2 = 1 << (path_num_2 - 1)
+
+        print(f"path 1 mask:{self.pretty_print_mask(path_1)}")
+        print(f"path 2 mask:{self.pretty_print_mask(path_2)}")
 
         ros_nodes = []
-        for ros_node,tree_nodes in enumerate(self.path_map):
-            if path_num_1 in tree_nodes or path_num_2 in tree_nodes:
-                print(tree_nodes)
+        for ros_node,path_mask in enumerate(self.path_map):
+            if (path_mask & path_1) or (path_mask & path_2): # find ROS nodes that are in either path
+                print(f"Found {ros_node:>{3}} in mask {self.pretty_print_mask(path_mask)}")
                 ros_nodes.append(ros_node)
 
-        self.shuffle_path(path_num_1,path_num_2)
+        self.shuffle_path(ros_nodes)
 
         return ros_nodes
 
-    @debugger
-    def shuffle_path(self,path_num_1,path_num_2):
-        
-        shuffle_ros_node_list  = []
-        for ros_node in self.tree_map:
-            if path_num_1 in self.path_map[ros_node] or path_num_2 in self.path_map[ros_node]:
-                shuffle_ros_node_list.append(ros_node)
+    @debugger_data
+    def shuffle_path(self,shuffle_ros_node_list):
+
         new_ros_node_list = shuffle_ros_node_list.copy()
         random.shuffle(new_ros_node_list)
         print(f"{shuffle_ros_node_list = }")
         print(f"{new_ros_node_list = }")
+        
+        ros_node_shuffle_map = {shuffle_ros_node_list[i]: new_ros_node_list[i] for i in range(len(shuffle_ros_node_list))}
+        ori_path_map = self.path_map.copy()
+        for tree_node, ros_node in enumerate(self.tree_map):
+            if ros_node in ros_node_shuffle_map:
+                new_ros_node = ros_node_shuffle_map[ros_node]
+                print(f"Tree Node {tree_node:>{3}} -> ROS Node {ros_node:>{3}} is changed to {new_ros_node:>{3}}")
+                self.tree_map[tree_node] = new_ros_node
+                self.path_map[new_ros_node] = ori_path_map[ros_node] # update the path map with the new ROS node
 
-        ori_tree_map = self.tree_map.copy()
+    def get_path_from_ros_node(self, ros_node):
 
-        for i in range(len(shuffle_ros_node_list)):
-            self.tree_map[shuffle_ros_node_list[i]] = ori_tree_map[new_ros_node_list[i]]
-        self.update_path_map()
+        if ros_node < 0 or ros_node >= self.num_blocks:
+            raise ValueError("ROS node number out of range.")
+        mask = 1
+        path_list = []
+        for i in range(1,self.path_count+1):
+            if self.path_map[ros_node] & mask:
+                print(f"Path {i + 1} is in ROS Node {ros_node}")
+                path_list.append(i)
+            mask <<= 1
 
+        return path_list
         
 
 if __name__ == "__main__":
-    oram = ORAM(7)
-    print(oram.get_path(1,3))
-    print(oram.get_path(2,4))
+    oram = ORAM(15)
+
+    print(oram.get_path_from_ros_node(1))
+    # print(oram.get_ros_node_from_path(1, 3))
+    # print(oram.get_ros_node_from_path(7, 4))
     
