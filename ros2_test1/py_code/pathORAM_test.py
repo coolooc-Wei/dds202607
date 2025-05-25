@@ -22,10 +22,12 @@ class ORAM:
             print(f"\n{func.__name__}=>")
             print(f"{self.tree_map = }")
             print(f"{self.path_map = }")
-            func(self, *args, **kwargs)
-            print(f"<={func.__name__}\n")
+            res = func(self, *args, **kwargs)
+            print(f"<={func.__name__}")
             print(f"{self.tree_map = }")
             print(f"{self.path_map = }")
+            print()
+            return res
             
         return wrap
         
@@ -35,12 +37,12 @@ class ORAM:
         path_count_pow = 0
         for tree_node in range(self.num_blocks):
             ros_node_num = self.tree_map[tree_node]
-            print(f"{ros_node_num = }")
-            print(f"{path_count = }, {path_count_pow = }")
+            # print(f"{ros_node_num = }")
+            # print(f"{path_count = }, {path_count_pow = }")
             split_num = self.path_count//(2**path_count_pow)
-            print(f"{split_num = }")
             path_split = self.path_list[path_count*split_num:path_count*split_num + split_num]
-            print(f"{path_split = }")
+            # print(f"{split_num = }")
+            # print(f"{path_split = }")
             # path = random.sample(path_split,1)[0]
             # print(path)
             self.path_map[ros_node_num] = path_split  # update ros_node_num -> path num
@@ -50,16 +52,21 @@ class ORAM:
                 path_count = 0
 
     @debugger
-    def get_path(self,path_num_1,path_num_2): 
-        for node in self.path_map:
-            if path_num_1 in node or path_num_2 in node:
-                print(node)
+    def get_path(self,path_num_1,path_num_2):
+
+        ros_nodes = []
+        for ros_node,tree_nodes in enumerate(self.path_map):
+            if path_num_1 in tree_nodes or path_num_2 in tree_nodes:
+                print(tree_nodes)
+                ros_nodes.append(ros_node)
 
         self.shuffle_path(path_num_1,path_num_2)
 
+        return ros_nodes
+
     @debugger
     def shuffle_path(self,path_num_1,path_num_2):
-        print("shuff")
+        
         shuffle_ros_node_list  = []
         for ros_node in self.tree_map:
             if path_num_1 in self.path_map[ros_node] or path_num_2 in self.path_map[ros_node]:
@@ -74,8 +81,11 @@ class ORAM:
         for i in range(len(shuffle_ros_node_list)):
             self.tree_map[shuffle_ros_node_list[i]] = ori_tree_map[new_ros_node_list[i]]
         self.update_path_map()
+
         
 
 if __name__ == "__main__":
-    oram = ORAM(15)
-    oram.get_path(1,3)
+    oram = ORAM(7)
+    print(oram.get_path(1,3))
+    print(oram.get_path(2,4))
+    
