@@ -77,12 +77,15 @@ class ORAM:
         path_1 = 1 << (path_num_1 - 1)
         path_2 = 1 << (path_num_2 - 1)
 
+        paths = path_1 | path_2 # combine the two paths into a single mask
+
         print(f"path 1 mask:{self.pretty_print_mask(path_1)}")
         print(f"path 2 mask:{self.pretty_print_mask(path_2)}")
+        print(f"Combined paths mask: {self.pretty_print_mask(paths)}")
 
         ros_nodes = []
         for ros_node,path_mask in enumerate(self.path_map):
-            if (path_mask & path_1) or (path_mask & path_2): # find ROS nodes that are in either path
+            if path_mask&paths: # find ROS nodes that are in either path
                 print(f"Found {ros_node:>{3}} in mask {self.pretty_print_mask(path_mask)}")
                 ros_nodes.append(ros_node)
 
@@ -126,6 +129,6 @@ if __name__ == "__main__":
     oram = ORAM(15)
 
     print(oram.get_path_from_ros_node(1))
-    # print(oram.get_ros_node_from_path(1, 3))
+    print(oram.get_ros_node_from_path(1, 3))
     # print(oram.get_ros_node_from_path(7, 4))
     
