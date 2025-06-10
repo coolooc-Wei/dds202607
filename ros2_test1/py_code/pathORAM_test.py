@@ -153,11 +153,11 @@ class ORAM:
 if __name__ == "__main__":
     oram = ORAM(7, debug_mode=True)
 
-    # print(oram.get_path_from_ros_node(1))
+    print(oram.get_path_from_ros_node(1))
     path_1, path_2 = oram.random_choose_two_path(1)
     for _ in range(10):
         print(f"Randomly chosen paths for ROS node 1: {path_1}, {path_2}")
 
-    # print(oram.get_ros_node_from_path(1, 3))
+    print(oram.get_ros_node_from_path(1, 3))
     # print(oram.get_ros_node_from_path(7, 4))
     

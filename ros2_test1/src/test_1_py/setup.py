@@ -47,6 +47,7 @@ setup(
             'multi_publisher_test = test_1_py.multi_publisher_test:main',
             'multi_publisher_ORAM = test_1_py.multi_publisher_ORAM:main',
             'pathORAM_test = test_1_py.pathORAM_test:main',
+            'multi_subscriber_test = test_1_py.multi_subscriber_test:main',
         ],
     },
 )

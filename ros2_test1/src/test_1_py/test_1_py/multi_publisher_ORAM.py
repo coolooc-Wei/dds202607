@@ -2,64 +2,131 @@ import sys
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import String
-from multiprocessing import Process,pool
+from multiprocessing import Process,pool,Queue
 import sys
 import os
 from test_1_py.pathORAM_test import ORAM
+import json
+import time
 
 class MinimalPublisher(Node):
 
-    def __init__(self,topic_name):
+    def __init__(self,topic_name,sender_name,q):
         super().__init__('minimal_publisher')
         self.publisher_ = self.create_publisher(String, topic_name, 10)
+        self.topic_name = topic_name
+        self.sender_name = sender_name
+        self.q = q
+
         timer_period = 0.5  # seconds
         self.timer = self.create_timer(timer_period, self.timer_callback)
-        self.i = 0
 
     def timer_callback(self):
-        msg = String()
-        msg.data = 'Hello World: %d' % self.i
-        self.publisher_.publish(msg)
-        self.get_logger().info('Publishing: "%s"' % msg.data)
-        self.i += 1
+
+        if self.q.empty():
+            return
+
         
-        subscription_count = self.publisher_.get_subscription_count()
-        self.get_logger().info(f'Matched subscriptions count: {subscription_count}')
+        msg = String()
+        msg.data = f"{self.q.get()} from {self.sender_name}"
+        self.publisher_.publish(msg)
+        self.get_logger().info(f'{self.topic_name} {self.sender_name} send: {msg.data}')
 
-def create_topic(topic_name):
+class ORAM_Node():
+
+    def __init__(self,id):
+        self.id = id
+        self.data = None
+        with open(f'multi_node_datas/test_data_{self.id}.json', 'r') as f:
+            self.data = json.load(f)
+        print(f"{self.data}")
+        self.q_list = []
+        self.p_list = []
+        self.id_list = self.data['id_list'].copy()
+        self.ORAM = ORAM(len(self.id_list))
+        self.ROS_node_to_ORAM_node = {}
+
+        for ORAM_node,ROS_node in enumerate(self.id_list):
+            print(ORAM_node,ROS_node)
+            self.ROS_node_to_ORAM_node[ROS_node] = ORAM_node
+        print(self.ROS_node_to_ORAM_node)
+
+        self.create_node()  
+        self.start_process()
+        self.test_process()
+        
 
 
-    print(f"{topic_name = }")
+    def create_topic(self,topic_name,sender_name,q):
+
+
+        print(f"{topic_name = }")
+        
+        print(f"topic: {topic_name} create")
+        rclpy.init(args=None)
+        minimal_publisher = MinimalPublisher(topic_name,sender_name,q)
+        rclpy.spin(minimal_publisher)
+
+        minimal_publisher.destroy_node()
+        rclpy.shutdown()
+
+    def create_node(self):
+
+        id_list = self.data['id_list']
+
+        print(f"{id_list}")
+
+        for id in id_list:
+            q = Queue()
+            print(f"{id=} {q = }")
+            p = Process(target=self.create_topic,args=(f"topic_{id}",self.id,q,))    
+            self.q_list.append(q)
+            self.p_list.append(p)
     
-    print(f"topic: {topic_name} create")
-    rclpy.init(args=None)
-    minimal_publisher = MinimalPublisher(topic_name)
-    rclpy.spin(minimal_publisher)
+    def start_process(self):
+        for p in self.p_list:
+            p.start()
 
-    minimal_publisher.destroy_node()
-    rclpy.shutdown()
+    def test_process(self):
+        for i in self.data['sends']:
+            if i is not None:
+                ORAM_node = self.ROS_node_to_ORAM_node[i]
+                paths = self.ORAM.random_choose_two_path(ORAM_node)
+                nodes = self.ORAM.get_ros_node_from_path(paths[0],paths[1])
+                for node in nodes:
+                    if node == ORAM_node:
+                        self.q_list[node].put("real")
+                    else:
+                        self.q_list[node].put("fake")
+
+            time.sleep(1)
+
+
+def start_oram(num):
+    ORAM_Node(num)
 
 def main(args=None):
 
-    oram = ORAM(7, debug_mode=True)
+    # oram = ORAM(7, debug_mode=True)
 
     print(sys.argv)
-    if len(sys.argv)!=3:
-        print("need 2 topic name")
+    if len(sys.argv)!=2:
+        print("need 1 topic numbers")
         exit(-100)
     # rclpy.init(args=args)
 
-    for i in range(2):
-        p = Process(target=create_topic,args={sys.argv[1+i],})
-        p.start()
+    topic_num = int(sys.argv[1])
 
-    # Destroy the node explicitly
-    # (optional - otherwise it will be done automatically
-    # when the garbage collector destroys the node object)
-    # minimal_publisher.destroy_node()
-    # rclpy.shutdown()
+    oram_list = []
+
+    for num in range(topic_num):
+        print(f"{num = }")
+        p = Process(target=start_oram,args=(num,))
+        oram_list.append(p)
+
+    for p in oram_list:
+        p.start()
+    
 
 if __name__ == "__main__":
-    # main()
-
-    oram = ORAM(7, debug_mode=True)
+    main()
