@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Vis.js - 左右垂直排列</title>
+    <link href="https://unpkg.com/vis-network/styles/vis-network.min.css" rel="stylesheet" type="text/css"/>
+    <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+
+    <style type="text/css">
+        #mynetwork {
+            width: 800px;
+            height: 600px;
+            border: 1px solid lightgray;
+        }
+    </style>
+</head>
+<body>
+
+<p>將節點排列在左右兩側的垂直線上。</p>
+<div id="mynetwork"></div>
+
+<script type="text/javascript">
+    // 1. 準備原始節點資料（先不用管座標）
+    const leftNodesRaw = [
+        {id: 'L1', label: '左側節點 1'},
+        {id: 'L2', label: '左側節點 2'},
+        {id: 'L3', label: '左側節點 3'},
+        {id: 'L4', label: '左側節點 4'},
+        {id: 'L5', label: '左側節點 5'},
+    ];
+
+    const rightNodesRaw = [
+        {id: 'R1', label: '右側節點 1'},
+        {id: 'R2', label: '右側節點 2'},
+        {id: 'R3', label: '右側節點 3'},
+        {id: 'R4', label: '右側節點 4'},
+        {id: 'R5', label: '右側節點 5'},
+    ];
+
+    // 準備邊 (edges) 的資料
+    const edgesRaw = [
+        {from: 'L1', to: 'R1'},
+        {from: 'L2', to: 'R3'},
+        {from: 'L3', to: 'R5'},
+        {from: 'L4', to: 'R2'},
+        {from: 'L5', to: 'R4'},
+    ];
+
+    // 2. 處理節點資料，為它們加上座標
+    const xCoords = {
+        left: -250, // 左側欄的 X 座標
+        right: 250   // 右側欄的 X 座標
+    };
+    const ySpacing = 120; // 節點之間的垂直間距
+
+    const processedNodes = [];
+
+    // 處理左側節點
+    leftNodesRaw.forEach((node, index) => {
+        processedNodes.push({
+            ...node,
+            x: xCoords.left,
+            y: index * ySpacing,
+            fixed: true, // 鎖定位置，使用者不可拖動
+            color: '#66a3ff' // 給個顏色區分
+        });
+    });
+
+    // 處理右側節點
+    rightNodesRaw.forEach((node, index) => {
+        processedNodes.push({
+            ...node,
+            x: xCoords.right,
+            y: index * ySpacing,
+            fixed: true, // 鎖定位置
+            color: '#ff9966' // 給個顏色區分
+        });
+    });
+
+    // 3. 建立 vis.js 的 DataSet
+    const nodes = new vis.DataSet(processedNodes);
+    const edges = new vis.DataSet(edgesRaw);
+
+    // 4. 找到 HTML 容器
+    const container = document.getElementById('mynetwork');
+    const data = {
+        nodes: nodes,
+        edges: edges
+    };
+
+    // 5. 設定選項 - 這是關鍵！
+    const options = {
+        // **關閉物理引擎**
+        physics: {
+            enabled: false
+        },
+        // 你也可以在這裡設定邊的樣式等等
+        edges: {
+            smooth: {
+                type: 'cubicBezier', // 可以讓線條更平滑
+                forceDirection: 'horizontal',
+                roundness: 0.4,
+
+            },
+            arrows: {to: true},
+        },
+        interaction: {
+            dragNodes: true, // 即使 fixed:true，這裡設 true 還是能觸發點擊事件
+            dragView: true,
+            zoomView: true
+        }
+    };
+
+    // 6. 初始化網路圖
+    const network = new vis.Network(container, data, options);
+
+</script>
+</body>
+</html>

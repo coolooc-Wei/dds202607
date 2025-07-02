@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+<!--    <link href="https://unpkg.com/vis-network/styles/vis-network.min.css" rel="stylesheet" type="text/css" />-->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
+</head>
+
+<body>
+    <div id="mynetwork"></div>
+
+    <button onclick="add_update_edge(-1)">previous edge</button>
+    <button onclick="add_update_edge(1)">next edge</button>
+
+    <div id="test"></div>
+    <p id="time">0/9</p>
+
+    <script src="{{ url_for('static', filename='js/vis-network.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/socket.io.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/index.js') }}"></script>
+</body>
+</html>

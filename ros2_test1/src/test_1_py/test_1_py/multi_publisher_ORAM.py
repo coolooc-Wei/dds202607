@@ -88,16 +88,16 @@ class ORAM_Node():
             p.start()
 
     def test_process(self):
-        for i in self.data['sends']:
+        for t,i in enumerate(self.data['sends']):
             if i is not None:
                 ORAM_node = self.ROS_node_to_ORAM_node[i]
                 paths = self.ORAM.random_choose_two_path(ORAM_node)
                 nodes = self.ORAM.get_ros_node_from_path(paths[0],paths[1])
                 for node in nodes:
                     if node == ORAM_node:
-                        self.q_list[node].put("real")
+                        self.q_list[node].put(f"{t} real")
                     else:
-                        self.q_list[node].put("fake")
+                        self.q_list[node].put(f"{t} fake")
 
             time.sleep(1)
 
