@@ -15,4 +15,4 @@ ros2_test1/py_code/test.py
 .idea/
 test.py
 multi_node_datas/
-ros2_test1/py_code/vis/data
+ros2_test1/py_code/vis/data/
