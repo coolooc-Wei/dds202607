@@ -4,6 +4,7 @@ ros2_test1/log/
 ros2_test1/venv/
 ros2_test1/data/
 ros2_test1/kyber_keys/
+ros2_test1/py_code/vis/datas/
 data/
 log/
 install/
@@ -15,3 +16,4 @@ ros2_test1/py_code/test.py
 .idea/
 test.py
 multi_node_datas/
+
