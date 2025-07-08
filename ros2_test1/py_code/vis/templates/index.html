@@ -8,16 +8,16 @@
 </head>
 
 <body>
-    <div id="mynetwork"></div>
+    <div id="vis_once"></div>
 
     <button onclick="add_update_edge(-1)">previous edge</button>
     <button onclick="add_update_edge(1)">next edge</button>
-
-    <div id="test"></div>
     <p id="time">0/9</p>
+    <div id="vis_all"></div>
 
     <script src="{{ url_for('static', filename='js/vis-network.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/socket.io.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/index.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/vis_once.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/vis_all.js') }}"></script>
 </body>
 </html>

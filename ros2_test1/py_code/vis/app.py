@@ -64,6 +64,23 @@ def handle_oram_join():
 
     emit("oram_data", data)
 
+    data = {'time':9, 'node':8,'edges': get_all_edges()}
+
+    emit("oram_all_edges", data)
+
+
+def get_all_edges():
+    res = []
+
+    for time in range(10):
+        tmp = get_msg(time)
+        for i in tmp:
+            i['from'] = i['from'].replace('L', f'{time}_')
+            i['to'] = i['to'].replace('R', f'{time+1}_')
+        res.extend(tmp)
+    return res
+
+
 def get_msg(time):
     res = []
     for num in range(8):
@@ -92,8 +109,6 @@ right_nodes_list = ['R1', 'R2', 'R3', 'R4', 'R5', 'R6', 'R7', 'R8']
 
 
 @socketio.on('oram_add_edge')
-
-
 def handle_oram_add_edge(color):
     l_node = random.choice(left_nodes_list)
     r_node = random.choice(right_nodes_list)

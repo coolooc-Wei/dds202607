@@ -1,4 +1,4 @@
-var socket = io();
+let socket = io();
 socket.emit("oram_join");
 socket.on("oram_data", function (data) {
     console.log(`Connected to server: ${JSON.stringify(data)}`);
@@ -52,7 +52,6 @@ function update_vis(update_nodes, update_edges) {
     };
     //update global nodes
     network.setData(data);
-
 }
 
 let nodes = null;
@@ -96,7 +95,7 @@ const ySpacing = 60; // 節點之間的垂直間距
 
 
 // 找到 HTML 容器
-const container = document.getElementById('mynetwork');
+const container = document.getElementById('vis_once');
 
 
 const data = {
