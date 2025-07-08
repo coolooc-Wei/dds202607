@@ -12,8 +12,14 @@
 
     <button onclick="add_update_edge(-1)">previous edge</button>
     <button onclick="add_update_edge(1)">next edge</button>
+    <button onclick="add_update_edge(0,'real')">real</button>
+    <button onclick="add_update_edge(0,'fake')">fake</button>
+    <button onclick="add_update_edge(0,null)">all</button>
     <p id="time">0/9</p>
     <div id="vis_all"></div>
+    <button onclick="update_all('real')">real</button>
+    <button onclick="update_all('fake')">fake</button>
+    <button onclick="update_all(null)">all</button>
 
     <script src="{{ url_for('static', filename='js/vis-network.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/socket.io.js') }}"></script>

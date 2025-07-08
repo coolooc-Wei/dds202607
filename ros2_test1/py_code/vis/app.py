@@ -68,12 +68,17 @@ def handle_oram_join():
 
     emit("oram_all_edges", data)
 
+@socketio.on('oram_all')
+def handle_oram_all(edge):
+    data = {'time':9, 'node':8,'edges': get_all_edges(edge)}
+    emit("oram_all_edges", data)
 
-def get_all_edges():
+
+def get_all_edges(edge=None):
     res = []
 
     for time in range(10):
-        tmp = get_msg(time)
+        tmp = get_msg(time,edge)
         for i in tmp:
             i['from'] = i['from'].replace('L', f'{time}_')
             i['to'] = i['to'].replace('R', f'{time+1}_')
@@ -81,27 +86,31 @@ def get_all_edges():
     return res
 
 
-def get_msg(time):
+def get_msg(time,edge =None):
+
     res = []
     for num in range(8):
         with open(f'../../multi_node_datas/topic_{num}.txt', 'r') as f:
             for line in f:
                 line = line.strip('\n')
                 datas = line.split(' ')
-                if datas[0] == str(time):
+                if datas[0] == str(time) and (edge is None or edge == datas[1]):
                     res.append({'from':f'L{datas[-1]}','to':f'R{num}','color':'red' if datas[1]=='fake' else 'green'})
 
     return res
 
 
 @socketio.on('oram_update_edges')
-def handle_oram_update_edges(time):
+def handle_oram_update_edges(datas):
+    print(datas)
+    time = datas['time']
+    edge = datas['edge']
     print(f"Received time: {time}")
     if time < 0 or time > 9:
         emit("oram_update_edges", {'error': 'Invalid topic number'})
         return
 
-    res = get_msg(time)
+    res = get_msg(time,edge)
     emit('oram_update_edges', res)
 
 left_nodes_list = ['L1', 'L2', 'L3', 'L4', 'L5', 'L6', 'L7', 'L8']

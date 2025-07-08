@@ -12,6 +12,10 @@ socket.on("oram_all_edges", function (data) {
     create_all(data);
 });
 
+function update_all(edge=null){
+    socket.emit("oram_all", edge);
+}
+
 function create_all(data) {
     let all_nodes = [];
     for (let time = 0; time <= data.time; time++) {
@@ -29,9 +33,6 @@ function create_all(data) {
 
     all_edges = new vis.DataSet(data.edges);
 
-
-
-
     all_nodes = new vis.DataSet(all_nodes);
 
     let datas = {
@@ -40,5 +41,4 @@ function create_all(data) {
     }
 
     network_all.setData(datas);
-
 }

@@ -6,12 +6,13 @@ socket.on("oram_data", function (data) {
     let rightNodesRaw = data.right_nodes;
     process_nodes(leftNodesRaw, rightNodesRaw);
     update_vis(nodes, null);
-    socket.emit("oram_update_edges", 0);
+    socket.emit("oram_update_edges", {time:0,edge:null});
 });
 
 let time = 0
-
-function add_update_edge(num) {
+let edge_tmp = null;
+function add_update_edge(num,edge=edge_tmp) {
+    edge_tmp = edge;
     time += num;
     if (time < 0) {
         time = 0;
@@ -24,7 +25,8 @@ function add_update_edge(num) {
     }
     edge_time = document.getElementById('time');
     edge_time.innerText = `${time}/9`;
-    socket.emit("oram_update_edges", time);
+    datas = {time:time,edge:edge};
+    socket.emit("oram_update_edges", datas);
 
 }
 
