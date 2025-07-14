@@ -1,3 +1,5 @@
+const data_times = 20000-1;
+
 let socket = io();
 socket.emit("oram_join");
 socket.on("oram_data", function (data) {
@@ -19,14 +21,29 @@ function add_update_edge(num,edge=edge_tmp) {
         return;
     }
 
-    if (time > 9) {
-        time = 9;
+    if (time > data_times) {
+        time = data_times;
         return;
     }
     edge_time = document.getElementById('time');
-    edge_time.innerText = `${time}/9`;
+    edge_time.innerText = `${time}/${data_times}`;
     datas = {time:time,edge:edge};
     socket.emit("oram_update_edges", datas);
+
+}
+
+function goto_round(){
+    // get the value from the input field
+    let roundId = document.getElementById('round_id').value;
+    console.log(`goto round: ${roundId}`);
+
+    roundId = parseInt(roundId);
+    if (isNaN(roundId) || roundId < 0 || roundId > data_times) {
+        console.log("Invalid round ID.");
+        return;
+    }
+
+    add_update_edge(roundId-time, edge_tmp);
 
 }
 

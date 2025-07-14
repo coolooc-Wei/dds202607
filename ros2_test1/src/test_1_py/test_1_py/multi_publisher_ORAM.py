@@ -18,7 +18,7 @@ class MinimalPublisher(Node):
         self.sender_name = sender_name
         self.q = q
 
-        timer_period = 0.5  # seconds
+        timer_period = 0.1  # seconds
         self.timer = self.create_timer(timer_period, self.timer_callback)
 
     def timer_callback(self):
@@ -98,9 +98,6 @@ class ORAM_Node():
                         self.q_list[node].put(f"{t} real")
                     else:
                         self.q_list[node].put(f"{t} fake")
-
-            time.sleep(1)
-
 
 def start_oram(num):
     ORAM_Node(num)

@@ -15,11 +15,16 @@
     <button onclick="add_update_edge(0,'real')">real</button>
     <button onclick="add_update_edge(0,'fake')">fake</button>
     <button onclick="add_update_edge(0,null)">all</button>
-    <p id="time">0/9</p>
+    <input type="text" id="round_id" placeholder="round number">
+    <button onclick="goto_round()">goto round</button>
+    <p id="time">0/{{data_times}}</p>
     <div id="vis_all"></div>
     <button onclick="update_all('real')">real</button>
     <button onclick="update_all('fake')">fake</button>
     <button onclick="update_all(null)">all</button>
+    <input type="text" id="all_round_start" placeholder="round start">
+    <input type="text" id="all_round_end" placeholder="round ens">
+    <button onclick="all_round_set_range()">set range</button>
 
     <script src="{{ url_for('static', filename='js/vis-network.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/socket.io.js') }}"></script>

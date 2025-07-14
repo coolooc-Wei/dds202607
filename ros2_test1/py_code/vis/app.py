@@ -12,10 +12,12 @@ socketio = SocketIO(app)
 # Dictionary to store users and their assigned rooms
 users = {}
 
+data_times = 20000
+
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('index.html',data_times=data_times-1)
 
 
 @app.route('/test')
@@ -64,29 +66,33 @@ def handle_oram_join():
 
     emit("oram_data", data)
 
-    data = {'time':9, 'node':8,'edges': get_all_edges()}
+    data = {'time':data_times, 'node':8,'edges': get_all_edges()}
 
     emit("oram_all_edges", data)
 
 @socketio.on('oram_all')
 def handle_oram_all(edge):
-    data = {'time':9, 'node':8,'edges': get_all_edges(edge)}
+    print(f"Received all edge: {edge}")
+    data = {'time':data_times, 'node':8, 'edges': get_all_edges(edge)}
     emit("oram_all_edges", data)
 
 
 def get_all_edges(edge=None):
     res = []
 
-    for time in range(10):
-        tmp = get_msg(time,edge)
-        for i in tmp:
-            i['from'] = i['from'].replace('L', f'{time}_')
-            i['to'] = i['to'].replace('R', f'{time+1}_')
-        res.extend(tmp)
+    for num in range(8):
+        with open(f'../../multi_node_datas/topic_{num}.txt', 'r') as f:
+            for line in f:
+                line = line.strip('\n')
+                datas = line.split(' ')
+                # if int(datas[0])>10:
+                #     continue
+                if edge is None or edge == datas[1]:
+                    res.append({'from':f'{int(datas[0])}_{datas[-1]}','to':f'{int(datas[0])+1}_{num}','color':'red' if datas[1]=='fake' else 'green'})
     return res
 
 
-def get_msg(time,edge =None):
+def get_msg(time,edge=None):
 
     res = []
     for num in range(8):
@@ -106,7 +112,7 @@ def handle_oram_update_edges(datas):
     time = datas['time']
     edge = datas['edge']
     print(f"Received time: {time}")
-    if time < 0 or time > 9:
+    if time < 0 or time > data_times:
         emit("oram_update_edges", {'error': 'Invalid topic number'})
         return
 
