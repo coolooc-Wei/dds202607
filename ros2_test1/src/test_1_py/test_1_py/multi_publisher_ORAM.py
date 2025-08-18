@@ -3,7 +3,6 @@ import rclpy
 from rclpy.node import Node
 from std_msgs.msg import String
 from multiprocessing import Process,pool,Queue
-import sys
 import os
 from test_1_py.pathORAM_test import ORAM
 import json
