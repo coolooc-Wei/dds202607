@@ -7,8 +7,11 @@ import sys
 
 class MinimalService(Node):
 
-    def __init__(self,topic_name):
+    def __init__(self,topic_name,key_path):
         super().__init__('minimal_service')
+
+        self.key_path = key_path
+
         self.srv = self.create_service(Kyber, topic_name, self.kyber_server_callback)
 
 
@@ -24,7 +27,7 @@ class MinimalService(Node):
         # self.get_logger().info(f'Incoming request: {request.public_key}')
         self.get_logger().info(f'Shared secret: {shared_secret_server}')
         self.get_logger().info(f'Shared secret: {base64.b64encode(shared_secret_server).decode("utf-8")}')
-        f = open("shared_secret_server.key", "bw")
+        f = open(self.key_path, "bw")
         f.write(shared_secret_server)
         f.close()
         return response
@@ -32,10 +35,12 @@ class MinimalService(Node):
 
 def main(args=None):
     rclpy.init(args=args)
-    if len(sys.argv)!=2:
+    if len(sys.argv)<2:
         raise Exception("need topic name")
+    if len(sys.argv)<3:
+        raise Exception("need key path")
 
-    minimal_service = MinimalService(sys.argv[1])
+    minimal_service = MinimalService(sys.argv[1],sys.argv[2])
 
     rclpy.spin(minimal_service)
 

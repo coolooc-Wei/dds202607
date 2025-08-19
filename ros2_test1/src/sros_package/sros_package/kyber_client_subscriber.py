@@ -23,7 +23,7 @@ class MinimalSubscriber(Node):
     def listener_callback(self, msg):
         try:
             # msg.data = bytes.fromhex(msg.data)
-            msg.data = self.Aes.decrypt_string(msg.data)
+            msg.data = self.Aes.decrypt_string_gcm(msg.data)
             self.get_logger().info(f"I heard: {msg.data}")
         except Exception as e:
             self.get_logger().warning(f"DecryptionError: {e}")
