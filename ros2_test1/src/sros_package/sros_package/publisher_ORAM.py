@@ -5,8 +5,6 @@ from multiprocessing import Process, pool, Queue
 from sros_package.pathORAM import ORAM
 from sros_package.AES_topic import AES_publisher
 from sros_package.AES_tools import AES_tools
-import pickle
-import base64
 
 class ORAM_Node():
 
@@ -29,23 +27,23 @@ class ORAM_Node():
         self.start_process()
 
 
-    def create_topic(self, topic_name, queue):
+    def create_topic(self,topic_name, queue):
 
         print(f"{topic_name = }")
 
         print(f"topic: {topic_name} create")
-        # rclpy.init(args=None)
-        minimal_publisher = AES_publisher(topic_name, queue)
-        rclpy.spin(minimal_publisher)
+        rclpy.init(args=None)
+        aes_publisher = AES_publisher(topic_name, queue)
+        rclpy.spin(aes_publisher)
 
-        minimal_publisher.destroy_node()
+        aes_publisher.destroy_node()
         rclpy.shutdown()
 
     def create_node(self):
 
         for topic_name in self.topic_list:
             queue = Queue()
-            process = Process(target=self.create_topic, args=(topic_name, queue,))
+            process = Process(target=self.create_topic, args=(topic_name, queue))
             self.topic_to_queue[topic_name] = queue
             self.process_list.append(process)
 
@@ -54,6 +52,8 @@ class ORAM_Node():
             process.start()
 
     def send_data(self, data):
+
+        print(f"sending {data}")
 
         path_1,path_2 = self.ORAM.random_choose_two_path(self.topic_name_to_ORAM_node[self.target])
         ORAM_nodes = self.ORAM.get_ros_node_from_path(path_1,path_2)

@@ -28,6 +28,9 @@ def main():
         print(f"明文: {plain_text}")
 
         encrypted,nonce,tag = aes_encrypt(plain_text, key)
+        print(type(encrypted))
+        print(type(nonce))
+        print(type(tag))
         print(f"加密後:\nencrypted: {base64.b64encode(encrypted).decode('utf-8')}\nnonce: {base64.b64encode(nonce).decode('utf-8')}\ntag: {base64.b64encode(tag).decode('utf-8')}")
 
         decrypted = aes_decrypt(encrypted, key, nonce, tag)  # 解密

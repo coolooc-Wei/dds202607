@@ -11,7 +11,7 @@ from sros_package.AES_tools import AES_tools
 class AES_publisher(Node):
 
     def __init__(self, topic_name: str, queue: Queue):
-        super().__init__('minimal_publisher')
+        super().__init__(topic_name + '_publisher')
         self.publisher_ = self.create_publisher(String, topic_name, 10)
         self.queue = queue
         self.timer_period = 0.5  # seconds
@@ -29,16 +29,14 @@ class AES_publisher(Node):
 class AES_subscriber(Node):
 
     def __init__(self, topic_name: str, key_path: str):
-        super().__init__('minimal_subscriber')
+        super().__init__(topic_name + '_subscriber')
         self.aes = AES_tools(key_path)
         self.subscription = self.create_subscription(String,topic_name,self.listener_callback,10)
         self.subscription  # prevent unused variable warning
 
     def listener_callback(self, msg):
         try:
-            msg.data = self.aes.decrypt_obj_gcm(msg.data)
-            msg.data = base64.b64decode(msg.data)
-            res_data = pickle.loads(msg.data)
+            res_data = self.aes.decrypt_obj_gcm(msg.data)
             print(res_data)
         except Exception as e:
             self.get_logger().warning(f"DecryptionError: {e}")

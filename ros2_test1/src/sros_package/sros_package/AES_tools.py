@@ -42,9 +42,15 @@ class AES_tools:
         
     def decrypt_obj_gcm(self,input_json):
         input_dict = json.loads(input_json)
-        encrypted_text = input_dict['encrypted_text']
+        print(input_dict)
+        encrypted_text = input_dict['encrypted']
         nonce = input_dict['nonce']
         tag = input_dict['tag']
+        encrypted_text = base64.b64decode(encrypted_text)
+        nonce = base64.b64decode(nonce)
+        tag = base64.b64decode(tag)
         cipher = AES.new(self.key, AES.MODE_GCM, nonce=nonce)  # 創建解密對象
         decrypted = cipher.decrypt_and_verify(encrypted_text, tag)  # 解密
+        decrypted = base64.b64decode(decrypted)
+        decrypted = pickle.loads(decrypted)
         return decrypted

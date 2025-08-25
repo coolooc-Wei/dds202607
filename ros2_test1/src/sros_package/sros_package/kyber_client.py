@@ -40,6 +40,10 @@ class KyberClient(Node):
         return shared_secret_client
 
 def kyber_client(topic_name,key_path):
+    try:
+        rclpy.init(args=None)
+    except:
+        pass
     minimal_client = KyberClient(topic_name,key_path)
 
     response = minimal_client.send_request()
