@@ -23,8 +23,6 @@ class MinimalService(Node):
 
         ciphertext, shared_secret_server = self.kyber_server.encap_secret(public_key)
         response.ciphertext = base64.b64encode(ciphertext).decode('utf-8')
-        # ciphertext = "ciphertext"
-        # self.get_logger().info(f'Incoming request: {request.public_key}')
         self.get_logger().info(f'Shared secret: {shared_secret_server}')
         self.get_logger().info(f'Shared secret: {base64.b64encode(shared_secret_server).decode("utf-8")}')
         f = open(self.key_path, "bw")

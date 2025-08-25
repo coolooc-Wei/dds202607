@@ -1,9 +1,8 @@
 import rclpy
 from rclpy.node import Node
-from sros_package.kyber import kyber_client
-from sros_package.Aes import Aes
+from sros_package.kyber_client import kyber_client
+from sros_package.AES import AES
 from std_msgs.msg import String
-import sys
 
 
 
@@ -43,7 +42,7 @@ def main(args=None):
     print(f"{key = }")
 
     
-    minimal_subscriber = MinimalSubscriber()
+    minimal_subscriber = ()
 
     rclpy.spin(minimal_subscriber)
 

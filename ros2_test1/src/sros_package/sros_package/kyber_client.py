@@ -1,4 +1,3 @@
-import sys
 import rclpy
 from rclpy.node import Node
 from interfaces.srv import Kyber
@@ -6,7 +5,7 @@ import oqs
 import base64
 from std_msgs.msg import String
 
-class MinimalClientAsync(Node):
+class KyberClient(Node):
 
     def __init__(self,topic_name,key_path):
         super().__init__('minimal_client_async')
@@ -31,8 +30,8 @@ class MinimalClientAsync(Node):
         ciphertext = base64.b64decode(res.ciphertext)
         shared_secret_client = client.decap_secret(ciphertext)
 
-        self.get_logger().info(f"Shared secret: {shared_secret_client}")
-        self.get_logger().info(f'Shared secret: {base64.b64encode(shared_secret_client).decode("utf-8")}')
+        # self.get_logger().info(f"Shared secret: {shared_secret_client}")
+        # self.get_logger().info(f'Shared secret: {base64.b64encode(shared_secret_client).decode("utf-8")}')
 
         f = open(self.key_path, "bw")
         f.write(shared_secret_client)
@@ -41,11 +40,7 @@ class MinimalClientAsync(Node):
         return shared_secret_client
 
 def kyber_client(topic_name,key_path):
-    try:
-        rclpy.init(args=args)
-    except:
-        pass
-    minimal_client = MinimalClientAsync(topic_name,key_path)
+    minimal_client = KyberClient(topic_name,key_path)
 
     response = minimal_client.send_request()
     return response

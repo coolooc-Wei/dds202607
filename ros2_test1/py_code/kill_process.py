@@ -1,6 +1,6 @@
 import os
 
-tar = 'multi_publisher_ORAM'
+tar = 'sros_kyber_aes_oram_client_test'
 
 l = os.popen('ps -aux | grep python').read()
 

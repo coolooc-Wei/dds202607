@@ -20,7 +20,7 @@ class MinimalPublisher(Node):
         self.timer = self.create_timer(timer_period, self.timer_callback)
 
     def load_public_key(self):
-        with open('kyber_keys/server/shared_secret_server.key', mode='rb') as publicfile:
+        with open('kyber_keys/shared_secret_server.key', mode='rb') as publicfile:
             public_key = publicfile.read()
         return public_key
     

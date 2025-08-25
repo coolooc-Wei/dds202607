@@ -1,7 +1,12 @@
+from Crypto.Cipher import AES
+from Crypto.Util.Padding import pad, unpad
+from Crypto.Random import get_random_bytes
 import json
+import base64
+import pickle
 
-class Aes:
-    def __init__(self,key_path):
+class AES_tools:
+    def __init__(self,key_path:str):
         self.key_path = key_path
         self.key = None
         self.load_private_key()
@@ -10,13 +15,15 @@ class Aes:
         with open(self.key_path, mode='rb') as key_file:
             self.key = key_file.read()
     
-    def aes_encrypt_cbc(self,plain_text):
+    def encrypt_obj_cbc(self,data):
+        data = pickle.dumps(data)
+        plain_text = base64.b64encode(data).decode('utf-8')
         iv = get_random_bytes(16)  # 生成隨機初始化向量
         cipher = AES.new(self.key, AES.MODE_CBC, iv)  # 創建加密對象
-        encrypted = cipher.encrypt(pad(plain_text.encode('utf-8'), AES.block_size))  # 加密並補位
+        encrypted = cipher.encrypt(pad(plain_text, AES.block_size))  # 加密並補位
         return base64.b64encode(iv + encrypted).decode('utf-8')  # 返回加密後的資料（含IV）
 
-    def decrypt_string_cbc(self,encrypted_text):
+    def decrypt_obj_cbc(self,encrypted_text):
         encrypted_bytes = base64.b64decode(encrypted_text)  # 解碼
         iv = encrypted_bytes[:16]  # 提取IV
         encrypted_data = encrypted_bytes[16:]  # 提取加密資料
@@ -24,19 +31,20 @@ class Aes:
         decrypted = unpad(cipher.decrypt(encrypted_data), AES.block_size).decode('utf-8')  # 解密並去補位
         return decrypted
 
-    def aes_encrypt(plain_text, key):
-        cipher = AES.new(key, AES.MODE_GCM)  # 創建加密對象
-        encrypted, tag = cipher.encrypt_and_digest(plain_text.encode('utf-8'))  # 加密
-
+    def encrypt_obj_gcm(self,data):
+        data = pickle.dumps(data)
+        plain_text = base64.b64encode(data)
+        cipher = AES.new(self.key, AES.MODE_GCM)  # 創建加密對象
+        encrypted, tag = cipher.encrypt_and_digest(plain_text)  # 加密
         tmp_dict =  {'encrypted':encrypted, 'nonce':cipher.nonce, 'tag':tag}
-        res_json = json.dumps(tmp_dict)
+        res_json = json.dumps(tmp_dict, default=lambda x: base64.b64encode(x).decode('utf-8'))
         return res_json
         
-    def decrypt_string_gcm(self,input_json):
+    def decrypt_obj_gcm(self,input_json):
         input_dict = json.loads(input_json)
         encrypted_text = input_dict['encrypted_text']
         nonce = input_dict['nonce']
         tag = input_dict['tag']
-        cipher = AES.new(key, AES.MODE_GCM, nonce=nonce)  # 創建解密對象
+        cipher = AES.new(self.key, AES.MODE_GCM, nonce=nonce)  # 創建解密對象
         decrypted = cipher.decrypt_and_verify(encrypted_text, tag)  # 解密
         return decrypted
