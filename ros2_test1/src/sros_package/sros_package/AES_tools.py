@@ -42,7 +42,7 @@ class AES_tools:
         
     def decrypt_obj_gcm(self,input_json):
         input_dict = json.loads(input_json)
-        print(input_dict)
+        # print(input_dict)
         encrypted_text = input_dict['encrypted']
         nonce = input_dict['nonce']
         tag = input_dict['tag']
