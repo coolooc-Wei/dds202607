@@ -10,14 +10,16 @@ import time
 
 class MinimalPublisher(Node):
 
-    def __init__(self,topic_name,sender_name,q):
+    def __init__(self,topic_name,sender_name,q,path):
         super().__init__('minimal_publisher')
-        self.publisher_ = self.create_publisher(String, topic_name, 10)
+        self.publisher_ = self.create_publisher(String, topic_name, 10000)
         self.topic_name = topic_name
         self.sender_name = sender_name
         self.q = q
+        self.path = path
+        print(f"publisher {self.topic_name = } {self.sender_name = } created")
 
-        timer_period = 0.1  # seconds
+        timer_period = 0.01  # seconds
         self.timer = self.create_timer(timer_period, self.timer_callback)
 
     def timer_callback(self):
@@ -30,6 +32,9 @@ class MinimalPublisher(Node):
         msg.data = f"{self.q.get()} from {self.sender_name}"
         self.publisher_.publish(msg)
         self.get_logger().info(f'{self.topic_name} {self.sender_name} send: {msg.data}')
+        with open(self.path,'a') as f:
+            f.write(f'{self.topic_name} send: {msg.data}')
+            f.write('\n')
 
 class ORAM_Node():
 
@@ -63,7 +68,7 @@ class ORAM_Node():
         
         print(f"topic: {topic_name} create")
         rclpy.init(args=None)
-        minimal_publisher = MinimalPublisher(topic_name,sender_name,q)
+        minimal_publisher = MinimalPublisher(topic_name,sender_name,q,f'multi_node_datas/sender_{sender_name}.txt')
         rclpy.spin(minimal_publisher)
 
         minimal_publisher.destroy_node()

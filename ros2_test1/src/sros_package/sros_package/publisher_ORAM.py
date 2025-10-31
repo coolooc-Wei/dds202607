@@ -30,7 +30,6 @@ class ORAM_Node():
     def create_topic(self,topic_name, queue):
 
         print(f"{topic_name = }")
-
         print(f"topic: {topic_name} create")
         rclpy.init(args=None)
         aes_publisher = AES_publisher(topic_name, queue)

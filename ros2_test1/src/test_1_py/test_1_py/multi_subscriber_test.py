@@ -2,26 +2,24 @@ import sys
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import String
-from multiprocessing import Process,pool
+from multiprocessing import Process,pool,Queue
 
 class MinimalSubscriber(Node):
 
-    def __init__(self,topic_name,path):
+    def __init__(self,topic_name,queue):
         super().__init__('minimal_subscriber')
         self.subscription = self.create_subscription(
             String,
             topic_name,
             self.listener_callback,
-            10)
+            10000)
         self.subscription  # prevent unused variable warning
-        self.path = path
+        self.queue = queue
         
 
     def listener_callback(self, msg):
         self.get_logger().info('I heard: "%s"' % msg.data)
-        with open(self.path,'a') as f:
-            f.write(msg.data)
-            f.write('\n')
+        self.queue.put(msg.data)
 
 
 def create_topic(topic_name,path):
@@ -37,6 +35,16 @@ def create_topic(topic_name,path):
     minimal_publisher.destroy_node()
     rclpy.shutdown()
 
+def create_file_saver(path,queue):
+    print(f"file saver create: {path}")
+    with open(path,'a') as f:
+        while True:
+            if not queue.empty():
+                data = queue.get()
+                print(f"file saver {path = } writing {data = }")
+                f.write(data)
+                f.write('\n')
+
 def main(args=None):
     print(sys.argv)
     if len(sys.argv)!=2:
@@ -47,11 +55,18 @@ def main(args=None):
     topic_num = int(sys.argv[1])
 
     subscriber_list = []
+    file_saver_list = []
 
     for num in range(topic_num):
         print(f"{num = }")
-        p = Process(target=create_topic,args=(f"topic_{num}",f'multi_node_datas/topic_{num}.txt',))
+        q = Queue()
+        p = Process(target=create_topic,args=(f"topic_{num}",q,))
         subscriber_list.append(p)
+        p = Process(target=create_file_saver, args=(f'multi_node_datas/topic_{num}.txt', q,))
+        file_saver_list.append(p)
+
+    for p in file_saver_list:
+        p.start()
 
     for p in subscriber_list:
         p.start()

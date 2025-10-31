@@ -1,0 +1,11 @@
+# 2025年9月常用穩定版本
+
+joblib==1.4.2
+
+# 建議使用的函式庫版本
+
+# requirements.txt (無版本號版本)
+tensorflow
+scikit-learn
+matplotlib
+seaborn

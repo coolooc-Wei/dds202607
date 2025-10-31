@@ -1,6 +1,7 @@
 import random
 import json
 import time
+import sys
 
 random.seed(time.time())
 
@@ -34,9 +35,13 @@ class NodeData:
 
 
 if __name__ == "__main__":
-    nodes = 8
+    if len(sys.argv) != 3:
+        print("need 2 arguments: nodes and times")
+        exit(-100)
+    nodes = int(sys.argv[1])
+    times = int(sys.argv[2])
     for node_id in range(nodes):
         id_list = [i for i in range(nodes) if i != node_id]
-        node = NodeData(node_id,id_list)
-        node.random_send(20000)
+        node = NodeData(node_id, id_list)
+        node.random_send(times)
         node.save(f"../multi_node_datas/test_data_{node_id}.json")
