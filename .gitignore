@@ -18,3 +18,4 @@ test.py
 multi_node_datas/
 .venv/
 PathORAM_Evaluate/model/
+PathORAM_Evaluate/datas/

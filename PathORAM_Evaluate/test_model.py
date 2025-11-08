@@ -8,8 +8,8 @@ import matplotlib.pyplot as plt
 import os
 
 # --- 1. 設定參數與檔案名稱 ---
-FILE_X = 'matrices_train_data.npy'
-FILE_Y = 'matrices_ans_data.npy'
+FILE_X = 'datas/matrices_train_data.npy'
+FILE_Y = 'datas/matrices_ans_data.npy'
 MODEL_FILENAME = 'unet_model_on_custom_data.keras'
 
 TEST_SPLIT_RATIO = 0.2

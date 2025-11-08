@@ -151,7 +151,7 @@ class ORAM:
         
 
 if __name__ == "__main__":
-    oram = ORAM(7, debug_mode=True)
+    oram = ORAM(8, debug_mode=True)
 
     print(oram.get_path_from_ros_node(1))
     path_1, path_2 = oram.random_choose_two_path(1)

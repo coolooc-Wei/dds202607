@@ -16,8 +16,8 @@ import os
 
 # --- 2. 設定參數與檔案名稱 ---
 # (與前一版本相同)
-FILE_X = 'matrices_train_data.npy'
-FILE_Y = 'matrices_ans_data.npy'
+train_data = 'datas/matrices_train_data.npy'
+ans_data = 'datas/matrices_ans_data.npy'
 MODEL_FILENAME = './model/Classification/mlp_classifier_model.joblib'
 TEST_SPLIT_RATIO = 0.2
 RANDOM_STATE = 42
@@ -26,18 +26,14 @@ BINARY_THRESHOLD = 0.5
 # --- 3. 載入 & 4. 預處理 & 5. 分割數據 ---
 # (與前一版本相同，此處省略以保持簡潔，請參考前一版本程式碼)
 print(">>> 步驟 1-3: 載入、預處理並分割數據...")
-X = np.load(FILE_X)
-y = np.load(FILE_Y)
+X = np.load(train_data)
+y = np.load(ans_data)
 X_flat = X.reshape(X.shape[0], -1)
 y_flat_binary = (y.reshape(y.shape[0], -1) > BINARY_THRESHOLD).astype(int)
 X_train, X_test, y_train, y_test = train_test_split(
     X_flat, y_flat_binary, test_size=TEST_SPLIT_RATIO, random_state=RANDOM_STATE
 )
 print("數據準備完成！")
-
-# --- 6. 建立與訓練模型 ---
-print("\n>>> 步驟 4: 建立與訓練 MLPClassifier 模型...")
-# 為了節省時間，如果模型已存在就直接載入
 
 print(f"未找到模型，開始新的訓練...")
 model = MLPClassifier(hidden_layer_sizes=(128, 128), activation='relu', solver='adam',

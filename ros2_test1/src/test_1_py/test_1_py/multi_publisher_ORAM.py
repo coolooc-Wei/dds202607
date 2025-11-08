@@ -19,7 +19,7 @@ class MinimalPublisher(Node):
         self.path = path
         print(f"publisher {self.topic_name = } {self.sender_name = } created")
 
-        timer_period = 0.01  # seconds
+        timer_period = 0.1  # seconds
         self.timer = self.create_timer(timer_period, self.timer_callback)
 
     def timer_callback(self):
@@ -32,6 +32,7 @@ class MinimalPublisher(Node):
         msg.data = f"{self.q.get()} from {self.sender_name}"
         self.publisher_.publish(msg)
         self.get_logger().info(f'{self.topic_name} {self.sender_name} send: {msg.data}')
+        print(f"{self.topic_name} {self.sender_name} send: {msg.data}")
         with open(self.path,'a') as f:
             f.write(f'{self.topic_name} send: {msg.data}')
             f.write('\n')

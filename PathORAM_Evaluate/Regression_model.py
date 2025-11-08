@@ -28,8 +28,8 @@ def calculate_approximate_accuracy(y_true, y_pred, tolerance):
 # --- 1. 載入您的數據 ---
 print("正在從 .npy 檔案載入數據...")
 try:
-    X = np.load('matrices_train_data.npy')
-    y = np.load('matrices_ans_data.npy')
+    X = np.load('datas/matrices_train_data.npy')
+    y = np.load('datas/matrices_ans_data.npy')
     print(f"成功載入資料！")
     print(f"輸入資料 X 的形狀: {X.shape}")
     print(f"目標資料 y 的形狀: {y.shape}")

@@ -3,6 +3,7 @@ import rclpy
 from rclpy.node import Node
 from std_msgs.msg import String
 from multiprocessing import Process,pool,Queue
+import os
 
 class MinimalSubscriber(Node):
 
@@ -36,8 +37,9 @@ def create_topic(topic_name,path):
     rclpy.shutdown()
 
 def create_file_saver(path,queue):
-    print(f"file saver create: {path}")
+    
     with open(path,'a') as f:
+        print(f"file saver create: {path}")
         while True:
             if not queue.empty():
                 data = queue.get()
