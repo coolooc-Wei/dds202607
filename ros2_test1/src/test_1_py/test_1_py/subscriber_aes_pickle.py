@@ -9,12 +9,13 @@ from Crypto.Random import get_random_bytes
 import base64
 from nav_msgs.msg import Odometry
 import pickle
+from sros_package.AES_tools import AES_tools
 
 class MinimalSubscriber(Node):
 
     def __init__(self):
         super().__init__('minimal_subscriber')
-        self.private_key = self.load_private_key()
+        self.AES_tools = AES_tools('kyber_keys/client/shared_secret_client.key')
         self.subscription = self.create_subscription(
             String,
             'aes_pickle',
@@ -22,30 +23,17 @@ class MinimalSubscriber(Node):
             10)
         self.subscription  # prevent unused variable warning
 
-    def load_private_key(self):
-        with open('kyber_keys/client/shared_secret_client.key', mode='rb') as privatefile:
-            private_key = privatefile.read()
-        return private_key
-    
-    def aes_decrypt(self,encrypted_text, key):
-        encrypted_bytes = base64.b64decode(encrypted_text)  # 解碼
-        iv = encrypted_bytes[:16]  # 提取IV
-        encrypted_data = encrypted_bytes[16:]  # 提取加密資料
-        cipher = AES.new(key, AES.MODE_CBC, iv)  # 創建解密對象
-        decrypted = unpad(cipher.decrypt(encrypted_data), AES.block_size).decode('utf-8')  # 解密並去補位
-        return decrypted
 
     def listener_callback(self, msg):
         try:
             # msg.data = bytes.fromhex(msg.data)
-            msg.data = self.aes_decrypt(msg.data, self.private_key)
+            msg.data = self.AES_tools.decrypt_obj_gcm(msg.data)
             self.get_logger().info(f"I heard: {msg.data}")
-            msg.data = base64.b64decode(msg.data)
             res_data = pickle.loads(msg.data)
 
             self.get_logger().info(f"Received data: {res_data}")
-            with open('data/odom_client.txt', 'a') as f:
-                f.write(f"{res_data}\n")
+            # with open('data/odom_client.txt', 'a') as f:
+            #     f.write(f"{res_data}\n")
         except Exception as e:
             self.get_logger().warning(f"DecryptionError: {e}")
 
