@@ -53,6 +53,9 @@ setup(
             'multi_publisher_ORAM_paper = test_1_py.multi_publisher_ORAM_paper:main',
             'multi_subscriber_test_paper = test_1_py.multi_subscriber_test_paper:main',
             'test_publisher_aes_tool = test_1_py.test_publisher_aes_tool:main',
+            'test_subscriber_aes_tool = test_1_py.test_subscriber_aes_tool:main',
+            'multi_publisher_ord_encrypt = test_1_py.multi_publisher_ord_encrypt:main',
+            'multi_subscriber_ord_encrypt = test_1_py.multi_subscriber_ord_encrypt:main',
         ],
     },
 )

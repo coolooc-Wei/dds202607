@@ -14,15 +14,16 @@ class MinimalPublisher(Node):
         timer_period = 0.5  # seconds
         self.timer = self.create_timer(timer_period, self.timer_callback)
         self.i = 0
-        self.AES_tools = AES_tools('kyber_keys/server/shared_secret_server_0.key')
+        self.AES_tools = AES_tools('kyber_keys/server/shared_secret_server_1.key')
 
     def timer_callback(self):
 
         tmp_msg = Odometry()
         real_datas,fake_datas = self.AES_tools.encrypt_obj_gcm_multi(tmp_msg,fake_num=4)
         print(f"{real_datas = } {fake_datas = }")
-        
-
+        msg = String()
+        msg.data = real_datas
+        self.publisher_.publish(msg)
 
 def main(args=None):
     rclpy.init(args=args)

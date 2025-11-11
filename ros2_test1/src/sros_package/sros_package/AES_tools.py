@@ -61,9 +61,10 @@ class AES_tools:
             tmp_encrypted = self.byte_xor(encrypted, get_random_bytes(len(encrypted)))
             tmp_nonce = self.byte_xor(cipher.nonce, get_random_bytes(len(cipher.nonce)))
             tmp_tag = self.byte_xor(tag, get_random_bytes(len(tag)))
+
             tmp_dict_fake =  {'encrypted':tmp_encrypted, 'nonce':tmp_nonce, 'tag':tmp_tag}
             res_json_fake = json.dumps(tmp_dict_fake, default=lambda x: base64.b64encode(x).decode('utf-8'))
-            print(f"{res_json_fake = }")
+            # print(f"{res_json_fake = }")
             fake_list.append(res_json_fake)
         return [res_json, fake_list]
 

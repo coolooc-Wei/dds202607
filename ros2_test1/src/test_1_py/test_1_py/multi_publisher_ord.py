@@ -19,7 +19,7 @@ class MinimalPublisher(Node):
         self.path = path
         # print(f"publisher {self.topic_name = } {self.sender_name = } created")
 
-        timer_period = 0.3  # seconds
+        timer_period = 0.1  # seconds
         self.timer = self.create_timer(timer_period, self.timer_callback)
 
     def timer_callback(self):
@@ -31,7 +31,7 @@ class MinimalPublisher(Node):
         msg = Odometry()
         # msg.data = f"{self.q.get()} from {self.sender_name}"
         self.publisher_.publish(msg)
-        self.get_logger().info(f'{self.topic_name} {self.sender_name} send: {msg}')
+        # self.get_logger().info(f'{self.topic_name} {self.sender_name} send:')
         # print(f"{self.topic_name} {self.sender_name} send: {msg.data}")
         # with open(self.path,'a') as f:
         #     f.write(f'{self.topic_name} send: {msg.data}')
@@ -126,9 +126,13 @@ def main(args=None):
     for p in oram_list:
         p.start()
 
+    print("start waiting for all node end")
     while True:
+        # print(f"{end_queue.qsize() = }")
         if end_queue.qsize() == topic_num:
-            print(f"all node end time: {time.time() - start_time}")
+            end_time = time.time() - start_time
+            # time.sleep(5)
+            print(f"all node end time: {end_time}")
             while not end_queue.empty():
                 msg = end_queue.get()
                 print(f"{msg = }")

@@ -2,9 +2,9 @@ import sys
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import String
+from nav_msgs.msg import Odometry
 from multiprocessing import Process,pool,Queue
 import os
-from nav_msgs.msg import Odometry
 from sros_package.AES_tools import AES_tools
 
 class MinimalSubscriber(Node):
@@ -16,20 +16,19 @@ class MinimalSubscriber(Node):
             topic_name,
             self.listener_callback,
             10000)
-        self.AES_tools = AES_tools(key_path)
         self.subscription  # prevent unused variable warning
         self.queue = queue
+        self.AES_tools = AES_tools(key_path)
         
 
     def listener_callback(self, msg):
-        # self.get_logger().info(f'I heard: "{msg.data}"')
-
+        # self.get_logger().info('I heard: "%s"' % msg)
         try:
             data = self.AES_tools.decrypt_obj_gcm(msg.data)
             self.get_logger().info(f'Decrypted data: {data} type: {type(data)}')
         except Exception as e:
             self.get_logger().warning(f"DecryptionError: {e}")
-        # self.queue.put(msg.data)
+        self.queue.put(msg)
 
 
 def create_topic(topic_name,path,key_path):
@@ -73,11 +72,11 @@ def main(args=None):
         q = Queue()
         p = Process(target=create_topic,args=(f"topic_{num}",q,f'kyber_keys/client/shared_secret_client_{num}.key',))
         subscriber_list.append(p)
-        p = Process(target=create_file_saver, args=(f'multi_node_datas/topic_{num}.txt', ))
+        p = Process(target=create_file_saver, args=(f'multi_node_datas/ord/topic_{num}.txt', q,))
         file_saver_list.append(p)
 
-    # for p in file_saver_list:
-    #     p.start()
+    for p in file_saver_list:
+        p.start()
 
     for p in subscriber_list:
         p.start()
