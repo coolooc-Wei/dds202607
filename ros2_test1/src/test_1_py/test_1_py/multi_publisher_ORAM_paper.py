@@ -12,14 +12,13 @@ from sros_package.AES_tools import AES_tools
 
 class MinimalPublisher(Node):
 
-    def __init__(self,topic_name,sender_name,q,path):
+    def __init__(self,topic_name,sender_name,q):
         super().__init__('minimal_publisher')
         self.publisher_ = self.create_publisher(String, topic_name, 10000)
         self.topic_name = topic_name
         self.sender_name = sender_name
         self.q = q
-        self.path = path
-        print(f"publisher {self.topic_name = } {self.sender_name = } created")
+        # print(f"publisher {self.topic_name = } {self.sender_name = } created")
 
         timer_period = 0.1  # seconds
         self.timer = self.create_timer(timer_period, self.timer_callback)
@@ -29,15 +28,9 @@ class MinimalPublisher(Node):
         if self.q.empty():
             return
 
-        
         msg = String()
         msg.data = self.q.get()
         self.publisher_.publish(msg)
-        # self.get_logger().info(f'{self.topic_name} {self.sender_name} send:')
-        # print(f"{self.topic_name} {self.sender_name} send: {msg.data}")
-        # with open(self.path,'a') as f:
-        #     f.write(f'{self.topic_name} send: {msg.data}')
-        #     f.write('\n')
 
 class ORAM_Node():
 
@@ -77,7 +70,7 @@ class ORAM_Node():
         
         print(f"topic: {topic_name} create")
         rclpy.init(args=None)
-        minimal_publisher = MinimalPublisher(topic_name,sender_name,q,f'multi_node_datas/sender_{sender_name}.txt')
+        minimal_publisher = MinimalPublisher(topic_name,sender_name,q)
         rclpy.spin(minimal_publisher)
 
         minimal_publisher.destroy_node()
@@ -87,7 +80,7 @@ class ORAM_Node():
 
         id_list = self.data['id_list']
 
-        print(f"{id_list}")
+        # print(f"{id_list}")
 
         for id in id_list:
             q = Queue()
@@ -122,7 +115,7 @@ class ORAM_Node():
                 break
         self.end_queue.put(f"node {self.id} end")
 
-def start_oram(num,end_queue):
+def start(num,end_queue):
     ORAM_Node(num,end_queue)
 
 def main(args=None):
@@ -137,15 +130,15 @@ def main(args=None):
 
     topic_num = int(sys.argv[1])
 
-    oram_list = []
+    node_list = []
     end_queue = Queue()
     for num in range(topic_num):
         print(f"{num = }")
-        p = Process(target=start_oram,args=(num,end_queue,))
-        oram_list.append(p)
+        p = Process(target=start,args=(num,end_queue,))
+        node_list.append(p)
 
     start_time = time.time()
-    for p in oram_list:
+    for p in node_list:
         p.start()
 
     print("start waiting for all node end")
@@ -160,7 +153,6 @@ def main(args=None):
                 print(f"{msg = }")
             print(f"all node end")
             break
-    
 
 if __name__ == "__main__":
     main()

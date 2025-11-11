@@ -11,13 +11,12 @@ from sros_package.AES_tools import AES_tools
 
 class MinimalPublisher(Node):
 
-    def __init__(self,topic_name,sender_name,q,path):
+    def __init__(self,topic_name,sender_name,q):
         super().__init__('minimal_publisher')
         self.publisher_ = self.create_publisher(String, topic_name, 10000)
         self.topic_name = topic_name
         self.sender_name = sender_name
         self.q = q
-        self.path = path
         # print(f"publisher {self.topic_name = } {self.sender_name = } created")
 
         timer_period = 0.1  # seconds
@@ -30,13 +29,7 @@ class MinimalPublisher(Node):
 
         msg = String()
         msg.data = self.q.get()
-        # msg.data = f"{self.q.get()} from {self.sender_name}"
         self.publisher_.publish(msg)
-        # self.get_logger().info(f'{self.topic_name} {self.sender_name} send:')
-        # print(f"{self.topic_name} {self.sender_name} send: {msg.data}")
-        # with open(self.path,'a') as f:
-        #     f.write(f'{self.topic_name} send: {msg.data}')
-        #     f.write('\n')
 
 class Node():
 
@@ -51,6 +44,11 @@ class Node():
         self.p_list = []
         self.id_q_map = {}
         self.id_list = self.data['id_list'].copy()
+        self.ROS_node_to_ORAM_node = {}
+        for ORAM_node,ROS_node in enumerate(self.id_list):
+            print(ORAM_node,ROS_node)
+            self.ROS_node_to_ORAM_node[ROS_node] = ORAM_node
+        print(self.ROS_node_to_ORAM_node)
 
         self.AES_tools_dict = {}
         for id in self.id_list:
@@ -70,7 +68,7 @@ class Node():
         
         print(f"topic: {topic_name} create")
         rclpy.init(args=None)
-        minimal_publisher = MinimalPublisher(topic_name,sender_name,q,f'multi_node_datas/ord/sender_{sender_name}.txt',)
+        minimal_publisher = MinimalPublisher(topic_name,sender_name,q)
         rclpy.spin(minimal_publisher)
 
         minimal_publisher.destroy_node()
@@ -88,7 +86,6 @@ class Node():
             p = Process(target=self.create_topic,args=(f"topic_{id}",self.id,q,))    
             self.q_list.append(q)
             self.p_list.append(p)
-            self.id_q_map[id] = q
     
     def start_process(self):
         for p in self.p_list:
@@ -97,8 +94,9 @@ class Node():
     def test_process(self):
         for t,i in enumerate(self.data['sends']):
             if i is not None:
+                ORAM_node = self.ROS_node_to_ORAM_node[i]
                 msg = self.AES_tools_dict[i].encrypt_obj_gcm(Odometry())
-                self.id_q_map[i].put(msg)
+                self.q_list[ORAM_node].put(msg)
 
         while True:
             if all([q.empty() for q in self.q_list]):
