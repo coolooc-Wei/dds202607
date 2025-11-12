@@ -16,20 +16,19 @@ class MinimalSubscriber(Node):
             topic_name,
             self.listener_callback,
             10000)
-        self.AES_tools = AES_tools(key_path)
         self.subscription  # prevent unused variable warning
         self.queue = queue
+        self.AES_tools = AES_tools(key_path)
         
 
     def listener_callback(self, msg):
-        # self.get_logger().info(f'I heard: "{msg.data}"')
-
+        # self.get_logger().info('I heard: "%s"' % msg)
         try:
             data = self.AES_tools.decrypt_obj_gcm(msg.data)
-            self.get_logger().info(f'Decrypted data: {data} type: {type(data)}')
+            self.get_logger().info(f'Decrypted data: {data}')
         except Exception as e:
             self.get_logger().warning(f"DecryptionError: {e}")
-        # self.queue.put(msg.data)
+        # self.queue.put(msg)
 
 
 def create_topic(topic_name,path,key_path):

@@ -25,10 +25,10 @@ class MinimalSubscriber(Node):
         # self.get_logger().info('I heard: "%s"' % msg)
         try:
             data = self.AES_tools.decrypt_obj_gcm(msg.data)
-            self.get_logger().info(f'Decrypted data: {data} type: {type(data)}')
+            self.get_logger().info(f'Decrypted data: {data}')
         except Exception as e:
             self.get_logger().warning(f"DecryptionError: {e}")
-        self.queue.put(msg)
+        # self.queue.put(msg)
 
 
 def create_topic(topic_name,path,key_path):
@@ -75,8 +75,8 @@ def main(args=None):
         p = Process(target=create_file_saver, args=(f'multi_node_datas/ord/topic_{num}.txt', q,))
         file_saver_list.append(p)
 
-    for p in file_saver_list:
-        p.start()
+    # for p in file_saver_list:
+    #     p.start()
 
     for p in subscriber_list:
         p.start()

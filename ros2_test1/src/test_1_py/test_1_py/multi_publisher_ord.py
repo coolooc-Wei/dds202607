@@ -7,12 +7,15 @@ from multiprocessing import Process,pool,Queue
 import os
 import json
 import time
+import pickle
+import base64
+
 
 class MinimalPublisher(Node):
 
     def __init__(self,topic_name,sender_name,q):
         super().__init__('minimal_publisher')
-        self.publisher_ = self.create_publisher(Odometry, topic_name, 10000)
+        self.publisher_ = self.create_publisher(String, topic_name, 10000)
         self.topic_name = topic_name
         self.sender_name = sender_name
         self.q = q
@@ -26,7 +29,8 @@ class MinimalPublisher(Node):
         if self.q.empty():
             return
         
-        msg = self.q.get()
+        msg = String()
+        msg.data = self.q.get()
         self.publisher_.publish(msg)
 
 class Node():
@@ -40,8 +44,12 @@ class Node():
         print(f"{self.data}")
         self.q_list = []
         self.p_list = []
-        self.id_q_map = {}
         self.id_list = self.data['id_list'].copy()
+        self.ROS_node_to_ORAM_node = {}
+        for ORAM_node,ROS_node in enumerate(self.id_list):
+            print(ORAM_node,ROS_node)
+            self.ROS_node_to_ORAM_node[ROS_node] = ORAM_node
+        print(self.ROS_node_to_ORAM_node)
 
         self.create_node()  
         self.start_process()
@@ -66,7 +74,7 @@ class Node():
 
         id_list = self.data['id_list']
 
-        print(f"{id_list}")
+        # print(f"{id_list}")
 
         for id in id_list:
             q = Queue()
@@ -74,7 +82,6 @@ class Node():
             p = Process(target=self.create_topic,args=(f"topic_{id}",self.id,q,))    
             self.q_list.append(q)
             self.p_list.append(p)
-            self.id_q_map[id] = q
     
     def start_process(self):
         for p in self.p_list:
@@ -83,7 +90,9 @@ class Node():
     def test_process(self):
         for t,i in enumerate(self.data['sends']):
             if i is not None:
-                self.id_q_map[i].put(Odometry())
+                ORAM_node = self.ROS_node_to_ORAM_node[i]
+                msg = base64.b64encode(pickle.dumps(Odometry())).decode('utf-8')
+                self.q_list[ORAM_node].put(msg)
 
         while True:
             if all([q.empty() for q in self.q_list]):

@@ -42,7 +42,6 @@ class Node():
         print(f"{self.data}")
         self.q_list = []
         self.p_list = []
-        self.id_q_map = {}
         self.id_list = self.data['id_list'].copy()
         self.ROS_node_to_ORAM_node = {}
         for ORAM_node,ROS_node in enumerate(self.id_list):

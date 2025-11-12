@@ -105,9 +105,9 @@ class ORAM_Node():
                 for node in nodes:
                     if node == ORAM_node:
                         self.q_list[node].put(real_datas)
-                    # else:
-                    #     self.q_list[node].put(fake_datas[c])
-                    #     c += 1
+                    else:
+                        self.q_list[node].put(fake_datas[c])
+                        c += 1
 
         while True:
             if all([q.empty() for q in self.q_list]):
