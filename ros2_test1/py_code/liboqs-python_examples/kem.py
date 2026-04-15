@@ -2,7 +2,7 @@
 
 import oqs
 from pprint import pprint
-
+import time
 
 
 print("liboqs version:", oqs.oqs_version())
@@ -12,7 +12,8 @@ kems = oqs.get_enabled_kem_mechanisms()
 pprint(kems, compact=True)
 
 # Create client and server with sample KEM mechanisms
-kemalg = "Kyber512"
+kemalg = "ML-KEM-1024"
+time_start = time.time()
 with oqs.KeyEncapsulation(kemalg) as client:
     with oqs.KeyEncapsulation(kemalg) as server:
         print("\nKey encapsulation details:")
@@ -37,3 +38,4 @@ with oqs.KeyEncapsulation(kemalg) as client:
         print(
             "\nShared secretes coincide:", shared_secret_client == shared_secret_server
         )
+print(f"\nTotal execution time: {time.time() - time_start} seconds")

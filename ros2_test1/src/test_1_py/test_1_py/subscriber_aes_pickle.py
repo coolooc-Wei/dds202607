@@ -29,9 +29,9 @@ class MinimalSubscriber(Node):
             # msg.data = bytes.fromhex(msg.data)
             msg.data = self.AES_tools.decrypt_obj_gcm(msg.data)
             self.get_logger().info(f"I heard: {msg.data}")
-            res_data = pickle.loads(msg.data)
+            # res_data = pickle.loads(msg.data)
 
-            self.get_logger().info(f"Received data: {res_data}")
+            # self.get_logger().info(f"Received data: {res_data}")
             # with open('data/odom_client.txt', 'a') as f:
             #     f.write(f"{res_data}\n")
         except Exception as e:
