@@ -19,3 +19,5 @@ multi_node_datas/
 .venv/
 PathORAM_Evaluate/model/
 PathORAM_Evaluate/datas/
+ros2_test1/py_code/path_debug.txt
+ros2_test1/py_code/path_analysis_res.txt

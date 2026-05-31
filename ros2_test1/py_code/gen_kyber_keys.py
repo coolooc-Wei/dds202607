@@ -12,7 +12,7 @@ kems = oqs.get_enabled_kem_mechanisms()
 pprint(kems, compact=True)
 
 # Create client and server with sample KEM mechanisms
-kemalg = "Kyber512"
+kemalg = "ML-KEM-1024"
 
 for i in range(8):
     with oqs.KeyEncapsulation(kemalg) as client:

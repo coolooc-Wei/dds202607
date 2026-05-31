@@ -56,6 +56,10 @@ setup(
             'test_subscriber_aes_tool = test_1_py.test_subscriber_aes_tool:main',
             'multi_publisher_ord_encrypt = test_1_py.multi_publisher_ord_encrypt:main',
             'multi_subscriber_ord_encrypt = test_1_py.multi_subscriber_ord_encrypt:main',
+            'multi_publisher_ord_encrypt_dummy = test_1_py.multi_publisher_ord_encrypt_dummy:main',
+            'multi_publisher_test_new = test_1_py.multi_publisher_test_new:main',
+            'publisher_secret_share = test_1_py.publisher_secret_share:main',
+            'subscriber_secret_share = test_1_py.subscriber_secret_share:main',
         ],
     },
 )

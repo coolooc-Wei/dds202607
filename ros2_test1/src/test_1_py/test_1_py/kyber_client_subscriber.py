@@ -21,7 +21,7 @@ class MinimalClientAsync(Node):
 
     def send_request(self):
 
-        client = oqs.KeyEncapsulation('Kyber512')
+        client = oqs.KeyEncapsulation('ML-KEM-1024')
         public_key_client = client.generate_keypair()
 
 

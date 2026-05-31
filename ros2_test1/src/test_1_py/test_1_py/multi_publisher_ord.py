@@ -13,29 +13,31 @@ import base64
 
 class MinimalPublisher(Node):
 
-    def __init__(self,topic_name,sender_name,q):
+    def __init__(self,topic_queue_list):
         super().__init__('minimal_publisher')
-        self.publisher_ = self.create_publisher(String, topic_name, 10000)
-        self.topic_name = topic_name
-        self.sender_name = sender_name
-        self.q = q
-        # print(f"publisher {self.topic_name = } {self.sender_name = } created")
+        self.publishers_ = []
+        for topic_name, q in topic_queue_list:
+            publisher = self.create_publisher(String, topic_name, 10000)
+            self.publishers_.append((publisher, q))
 
         timer_period = 0.1  # seconds
-        self.timer = self.create_timer(timer_period, self.timer_callback)
+        self.timers_ = []
+        for publisher, q in self.publishers_:
+            timer = self.create_timer(timer_period, lambda pub=publisher, queue=q: self.timer_callback(pub, queue))
+            self.timers_.append(timer)
 
-    def timer_callback(self):
+    def timer_callback(self, publisher, q):
 
-        if self.q.empty():
+        if q.empty():
             return
         
         msg = String()
-        msg.data = self.q.get()
-        self.publisher_.publish(msg)
+        msg.data = q.get()
+        publisher.publish(msg)
 
 class Node():
 
-    def __init__(self,id,end_queue):
+    def __init__(self, id, end_queue):
         self.id = id
         self.end_queue = end_queue
         self.data = None
@@ -57,14 +59,11 @@ class Node():
         
 
 
-    def create_topic(self,topic_name,sender_name,q):
+    def create_topic(self,topic_queue_list):
 
-
-        print(f"{topic_name = }")
-        
-        print(f"topic: {topic_name} create")
+        print(f"{topic_queue_list = }")
         rclpy.init(args=None)
-        minimal_publisher = MinimalPublisher(topic_name,sender_name,q)
+        minimal_publisher = MinimalPublisher(topic_queue_list)
         rclpy.spin(minimal_publisher)
 
         minimal_publisher.destroy_node()
@@ -76,12 +75,16 @@ class Node():
 
         # print(f"{id_list}")
 
+        topic_queue_list = []
         for id in id_list:
             q = Queue()
             print(f"{id=} {q = }")
-            p = Process(target=self.create_topic,args=(f"topic_{id}",self.id,q,))    
+            topic_name = f"topic_{id}"
+            topic_queue_list.append((topic_name,q))
             self.q_list.append(q)
-            self.p_list.append(p)
+
+        p = Process(target=self.create_topic,args=(topic_queue_list,))    
+        self.p_list.append(p)
     
     def start_process(self):
         for p in self.p_list:

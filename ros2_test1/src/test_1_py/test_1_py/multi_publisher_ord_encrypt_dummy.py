@@ -97,8 +97,15 @@ class Node():
         for t,i in enumerate(self.data['sends']):
             if i is not None:
                 ORAM_node = self.ROS_node_to_ORAM_node[i]
-                msg = self.AES_tools_dict[i].encrypt_obj_gcm(Odometry())
-                self.q_list[ORAM_node].put(msg)
+                real_datas,fake_datas = self.AES_tools_dict[i].encrypt_obj_gcm_multi(Odometry(), fake_num=6)
+                c = 0
+                for node in self.id_list:
+                    node = self.ROS_node_to_ORAM_node[node]
+                    if node == ORAM_node:
+                        self.q_list[node].put(real_datas)
+                    else:
+                        self.q_list[node].put(fake_datas[c])
+                        c += 1
 
         while True:
             if all([q.empty() for q in self.q_list]):

@@ -11,7 +11,7 @@ class MinimalService(Node):
         self.srv = self.create_service(Kyber, 'kyber', self.kyber_server_callback)
 
 
-        self.kyber_server = oqs.KeyEncapsulation('Kyber512')
+        self.kyber_server = oqs.KeyEncapsulation('ML-KEM-1024')
 
     def kyber_server_callback(self, request, response):
 

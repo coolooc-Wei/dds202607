@@ -5,16 +5,26 @@ import time
 random.seed(200) # set seed for reproducibility
 
 class ORAM:
-    def __init__(self, num_blocks, debug_mode=False):
+    def __init__(self, num_blocks, DEBUG_MODE=False,PATH_DEBUG=False,PATH_PATH = ""):
         self.num_blocks = num_blocks
         self.path_count = 2 ** math.floor(math.log2(self.num_blocks))
         self.tree_map = [i for i in range(self.num_blocks)]
         self.path_map = [-1 for _ in range(self.num_blocks)]
         self.path_list = [i for i in range(1, self.path_count + 1)]
 
-        self.debug_mode = debug_mode
+        self.DEBUG_MODE = DEBUG_MODE
+        self.PATH_DEBUG = PATH_DEBUG
+        self.PATH_PATH = PATH_PATH
 
-        if self.debug_mode:
+        if self.PATH_DEBUG:
+            if self.PATH_PATH == "":
+                raise ValueError("PATH_PATH error please set a path for path debug")
+            self.path_debug_file = open(self.PATH_PATH, "w")
+
+            self.path_debug_file.write(f"{self.num_blocks = }\n")
+            self.path_debug_file.write(f"{self.path_count = }\n")
+
+        if self.DEBUG_MODE:
             print("Debug mode is ON")
             print(f"{self.num_blocks = }")
             print(f"{self.path_count = }")
@@ -36,7 +46,7 @@ class ORAM:
 
     def debugger_data(func):
         def wrap(self, *args, **kwargs):
-            if not self.debug_mode:
+            if not self.DEBUG_MODE:
                 return func(self, *args, **kwargs)
             print(f"\n{func.__name__}=>")
             self.print_tree_node_ros_node_mask_mapping()
@@ -59,7 +69,7 @@ class ORAM:
         path_mask = 2 ** mask_count - 1 # mask for all paths
 
         for tree_node in range(self.num_blocks):
-            if self.debug_mode:
+            if self.DEBUG_MODE:
                 print(f"Tree Node {tree_node:>{3}} => Path Mask: {self.pretty_print_mask(path_mask)}")
             ros_node_num = self.tree_map[tree_node]
             self.path_map[ros_node_num] = path_mask # assign the path mask to the ROS node
@@ -87,7 +97,7 @@ class ORAM:
 
         paths = path_1 | path_2 # combine the two paths into a single mask
 
-        if self.debug_mode:
+        if self.DEBUG_MODE:
             print(f"path 1 mask:{self.pretty_print_mask(path_1)}")
             print(f"path 2 mask:{self.pretty_print_mask(path_2)}")
             print(f"Combined paths mask: {self.pretty_print_mask(paths)}")
@@ -95,9 +105,14 @@ class ORAM:
         ros_nodes = []
         for ros_node,path_mask in enumerate(self.path_map):
             if path_mask&paths: # find ROS nodes that are in either path
-                if self.debug_mode:
+                if self.DEBUG_MODE:
                     print(f"Found {ros_node:>{3}} in mask {self.pretty_print_mask(path_mask)}")
                 ros_nodes.append(ros_node)
+
+        if self.PATH_DEBUG:
+            self.path_debug_file.write(f"{path_num_1 = } {path_num_2 = }\n")
+            self.path_debug_file.write(f"path_1_mask = {self.pretty_print_mask(path_1)} path_2_mask = {self.pretty_print_mask(path_2)} combined_paths_mask = {self.pretty_print_mask(paths)}\n")
+            self.path_debug_file.write('-'*20 + '\n')
 
         self.shuffle_path(ros_nodes)
 
@@ -109,7 +124,7 @@ class ORAM:
         new_ros_node_list = shuffle_ros_node_list.copy()
         random.shuffle(new_ros_node_list)
 
-        if self.debug_mode:
+        if self.DEBUG_MODE:
             print(f"{shuffle_ros_node_list = }")
             print(f"{new_ros_node_list = }")
         
@@ -118,7 +133,7 @@ class ORAM:
         for tree_node, ros_node in enumerate(self.tree_map):
             if ros_node in ros_node_shuffle_map:
                 new_ros_node = ros_node_shuffle_map[ros_node]
-                if self.debug_mode:
+                if self.DEBUG_MODE:
                     print(f"Tree Node {tree_node:>{3}} -> ROS Node {ros_node:>{3}} is changed to {new_ros_node:>{3}}")
                 self.tree_map[tree_node] = new_ros_node
                 self.path_map[new_ros_node] = ori_path_map[ros_node] # update the path map with the new ROS node
@@ -131,7 +146,7 @@ class ORAM:
         path_list = []
         for i in range(1,self.path_count+1):
             if self.path_map[ros_node] & mask:
-                if self.debug_mode:
+                if self.DEBUG_MODE:
                     print(f"Path {i + 1} is in ROS Node {ros_node}")
                 path_list.append(i)
             mask <<= 1
@@ -151,13 +166,13 @@ class ORAM:
         
 
 if __name__ == "__main__":
-    oram = ORAM(7, debug_mode=True)
+    oram = ORAM(8, DEBUG_MODE=True,PATH_DEBUG=True,PATH_PATH = "path_debug.txt")
 
-    # print(oram.get_path_from_ros_node(1))
+    print(oram.get_path_from_ros_node(1))
     path_1, path_2 = oram.random_choose_two_path(1)
     for _ in range(10):
         print(f"Randomly chosen paths for ROS node 1: {path_1}, {path_2}")
 
-    # print(oram.get_ros_node_from_path(1, 3))
+    print(oram.get_ros_node_from_path(1, 3))
     # print(oram.get_ros_node_from_path(7, 4))
     
