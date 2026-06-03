@@ -83,77 +83,75 @@ def evaluate(model, dataloader, criterion, device):
 # ==========================================
 if __name__ == "__main__":
 
-    datasets = ["oram_simulation_data_100_1000_no_oram"]
-    num_op = 100
-    ratio_str = "0.00"
-    num_data_per_target = 1000
-    ratios = ["0.00","0.20","0.25","0.33","0.50"]
-    for ratio in ratios:
-        file_name = f"oram_simulation_data_{num_op}_{ratio}_{num_data_per_target}"
+    # datasets = ["oram_simulation_data_100_1000_no_oram"]
+    # num_op = 100
+    # ratio_str = "0.00"
+    # num_data_per_target = 1000
+    # ratios = ["0.00","0.20","0.25","0.33","0.50"]
+    # for ratio in ratios:
+    rounds = 700
+    node_num = 8
+    file_name = f"oram_simulation_data_{node_num}_{rounds}"
 
-        print(f"\n=== 開始訓練模型: {file_name} ===")
+    print(f"\n=== 開始訓練模型: {file_name} ===")
 
-        # 設定硬體裝置 (有 GPU 就用 GPU)
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        print(f"使用裝置: {device}")
+    # 設定硬體裝置 (有 GPU 就用 GPU)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"使用裝置: {device}")
 
-        # 填入你實際生成的檔案路徑與名稱 (這裡拿其中一個比率當範例)
-        num_op = 100
-        ratio_str = "0.00"
-        num_data_per_target = 1000
-        base_path = f"sim_datas/{file_name}"
+    base_path = f"sim_datas/{file_name}"
 
-        save_model_path = f"models/{file_name}_best_model.pth"
+    save_model_path = f"models/{file_name}_best_model.pth"
 
-        train_x_path = f"{base_path}_train_x.npy"
-        train_y_path = f"{base_path}_train_y.npy"
-        val_x_path = f"{base_path}_val_x.npy"
-        val_y_path = f"{base_path}_val_y.npy"
-        test_x_path = f"{base_path}_test_x.npy"
-        test_y_path = f"{base_path}_test_y.npy"
+    train_x_path = f"{base_path}_train_x.npy"
+    train_y_path = f"{base_path}_train_y.npy"
+    val_x_path = f"{base_path}_val_x.npy"
+    val_y_path = f"{base_path}_val_y.npy"
+    test_x_path = f"{base_path}_test_x.npy"
+    test_y_path = f"{base_path}_test_y.npy"
 
-        # 檢查檔案是否存在
-        if not os.path.exists(train_x_path):
-            raise FileNotFoundError(f"找不到訓練檔案：{train_x_path}，請先確認生成路徑。")
+    # 檢查檔案是否存在
+    if not os.path.exists(train_x_path):
+        raise FileNotFoundError(f"找不到訓練檔案：{train_x_path}，請先確認生成路徑。")
 
-        # 建立 Dataset 與 DataLoader
-        train_dataset = ORAMDataset(train_x_path, train_y_path)
-        val_dataset = ORAMDataset(val_x_path, val_y_path)
-        test_dataset = ORAMDataset(test_x_path, test_y_path)
+    # 建立 Dataset 與 DataLoader
+    train_dataset = ORAMDataset(train_x_path, train_y_path)
+    val_dataset = ORAMDataset(val_x_path, val_y_path)
+    test_dataset = ORAMDataset(test_x_path, test_y_path)
 
-        # 訓練集要 shuffle 打亂（雖然前面 target 內打亂了，但同 target 還是連在一起，這裡再全局 shuffle 一次）
-        train_loader = DataLoader(train_dataset, batch_size=128, shuffle=True, num_workers=2)
-        val_loader = DataLoader(val_dataset, batch_size=128, shuffle=False, num_workers=2)
-        test_loader = DataLoader(test_dataset, batch_size=128, shuffle=False, num_workers=2)
+    # 訓練集要 shuffle 打亂（雖然前面 target 內打亂了，但同 target 還是連在一起，這裡再全局 shuffle 一次）
+    train_loader = DataLoader(train_dataset, batch_size=128, shuffle=True, num_workers=2)
+    val_loader = DataLoader(val_dataset, batch_size=128, shuffle=False, num_workers=2)
+    test_loader = DataLoader(test_dataset, batch_size=128, shuffle=False, num_workers=2)
 
-        # 初始化模型（把之前的 DeepFingerprinting 類別放同個檔案或 import 進來）
-        # 這裡因為你的序列長度從 1000 縮短成 100，模型依然可以用（因為結尾有 AdaptiveMaxPool1d(1)）
-        model = DeepFingerprinting(num_classes=7).to(device)
+    # 初始化模型（把之前的 DeepFingerprinting 類別放同個檔案或 import 進來）
+    # 這裡因為你的序列長度從 1000 縮短成 100，模型依然可以用（因為結尾有 AdaptiveMaxPool1d(1)）
+    model = DeepFingerprinting(num_classes=8).to(device)
 
-        # 設定損失函數與優化器 (DF 原文推薦 Adamax)
-        criterion = nn.CrossEntropyLoss()
-        optimizer = optim.Adamax(model.parameters(), lr=0.002, weight_decay=1e-6)
+    # 設定損失函數與優化器 (DF 原文推薦 Adamax)
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.Adamax(model.parameters(), lr=0.002, weight_decay=1e-6)
 
-        # 開始訓練
-        epochs = 30
-        best_val_acc = 0.0
+    # 開始訓練
+    epochs = 30
+    best_val_acc = 0.0
 
-        print("開始訓練...")
-        for epoch in range(epochs):
-            train_loss, train_acc = train_epoch(model, train_loader, criterion, optimizer, device)
-            val_loss, val_acc = evaluate(model, val_loader, criterion, device)
+    print("開始訓練...")
+    for epoch in range(epochs):
+        train_loss, train_acc = train_epoch(model, train_loader, criterion, optimizer, device)
+        val_loss, val_acc = evaluate(model, val_loader, criterion, device)
 
-            print(f"Epoch [{epoch + 1:02d}/{epochs}] "
-                  f"Train Loss: {train_loss:.4f} | Train Acc: {train_acc * 100:.2f}% | "
-                  f"Val Loss: {val_loss:.4f} | Val Acc: {val_acc * 100:.2f}%")
+        print(f"Epoch [{epoch + 1:02d}/{epochs}] "
+              f"Train Loss: {train_loss:.4f} | Train Acc: {train_acc * 100:.2f}% | "
+              f"Val Loss: {val_loss:.4f} | Val Acc: {val_acc * 100:.2f}%")
 
-            # 儲存最佳模型
-            if val_acc > best_val_acc:
-                best_val_acc = val_acc
-                torch.save(model.state_dict(), save_model_path)
+        # 儲存最佳模型
+        if val_acc > best_val_acc:
+            best_val_acc = val_acc
+            torch.save(model.state_dict(), save_model_path)
 
-        print("\n訓練結束！載入最佳權重進行測試...")
-        # 載入表現最好的權重
-        model.load_state_dict(torch.load(save_model_path))
-        test_loss, test_acc = evaluate(model, test_loader, criterion, device)
-        print(f"== 最終測試結果 ==\nTest Loss: {test_loss:.4f} | Test Acc: {test_acc * 100:.2f}%")
+    print("\n訓練結束！載入最佳權重進行測試...")
+    # 載入表現最好的權重
+    model.load_state_dict(torch.load(save_model_path))
+    test_loss, test_acc = evaluate(model, test_loader, criterion, device)
+    print(f"== 最終測試結果 ==\nTest Loss: {test_loss:.4f} | Test Acc: {test_acc * 100:.2f}%")
