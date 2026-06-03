@@ -133,7 +133,7 @@ if __name__ == "__main__":
     optimizer = optim.Adamax(model.parameters(), lr=0.002, weight_decay=1e-6)
 
     # 開始訓練
-    epochs = 30
+    epochs = 50
     best_val_acc = 0.0
 
     print("開始訓練...")

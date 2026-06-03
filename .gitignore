@@ -23,3 +23,4 @@ ros2_test1/py_code/path_debug.txt
 ros2_test1/py_code/path_analysis_res.txt
 PathORAM_Evaluate/models/
 PathORAM_Evaluate/sim_datas/
+PathORAM_Evaluate/__pycache__/
