@@ -83,16 +83,13 @@ def evaluate(model, dataloader, criterion, device):
 # ==========================================
 if __name__ == "__main__":
 
-    # datasets = ["oram_simulation_data_100_1000_no_oram"]
-    # num_op = 100
-    # ratio_str = "0.00"
-    # num_data_per_target = 1000
-    # ratios = ["0.00","0.20","0.25","0.33","0.50"]
-    # for ratio in ratios:
-    rounds = 700
-    node_num = 8
+    node_num = 64
+    rounds = 630
     times_each_round = 100
-    file_name = f"oram_simulation_data_{node_num}_{rounds}_{times_each_round}"
+    random_communication_ratio = 0
+    file_name = f"oram_simulation_data_{node_num}_{rounds}_{times_each_round}_{random_communication_ratio}"
+    
+    print(f"use {file_name} to train model")
 
     print(f"\n=== 開始訓練模型: {file_name} ===")
 
@@ -127,7 +124,7 @@ if __name__ == "__main__":
 
     # 初始化模型（把之前的 DeepFingerprinting 類別放同個檔案或 import 進來）
     # 這裡因為你的序列長度從 1000 縮短成 100，模型依然可以用（因為結尾有 AdaptiveMaxPool1d(1)）
-    model = DeepFingerprinting(num_classes=8).to(device)
+    model = DeepFingerprinting(node_num=node_num, times_each_round=times_each_round).to(device)
 
     # 設定損失函數與優化器 (DF 原文推薦 Adamax)
     criterion = nn.CrossEntropyLoss()

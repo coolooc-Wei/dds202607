@@ -7,10 +7,10 @@ random.seed(time.time())  # set seed for reproducibility
 
 if __name__ == "__main__":
 
-    node_num = 8
-    rounds = 700
+    node_num = 64
+    rounds = 630
     times_each_round = 100
-    random_communication_ratio = 0.5
+    random_communication_ratio = 0
 
     file_name = f"sim_datas/oram_simulation_data_{node_num}_{rounds}_{times_each_round}_{random_communication_ratio}"
 
@@ -24,6 +24,8 @@ if __name__ == "__main__":
     sim_res = []
     gts = []
     for round_num in range(rounds):
+        if round_num % 10 == 0:
+            print(f"round {round_num}")
         if round_num % (rounds // (node_num - 1)) == 0:
             if target_num != 0:
                 # shuffle sim_res and gt_tmp together
@@ -80,7 +82,7 @@ if __name__ == "__main__":
                             random_node = random.randint(0, node_num - 1)
                         oram = oram_list[num]
                         path_1, path_2 = oram.random_choose_two_path(
-                            target_node if target_node <= num else target_node - 1)  # if target_node > num, the target node will be num-1 in the oram with num nodes
+                            random_node if random_node <= num else random_node - 1)  # if target_node > num, the target node will be num-1 in the oram with num nodes
                         choose_nodes = oram.get_ros_node_from_path(path_1, path_2)
                         oram.shuffle_path(choose_nodes)
                         for node in choose_nodes:

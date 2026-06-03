@@ -4,15 +4,18 @@ import torch.optim as optim
 
 
 class DeepFingerprinting(nn.Module):
-    def __init__(self, num_classes=8):
+    def __init__(self, node_num=8, times_each_round=100):
         super(DeepFingerprinting, self).__init__()
+        
+        self.times_each_round = times_each_round
+        in_channels = node_num * node_num
 
         # === Block 1 ===
         # 預期輸入 X 的原始形狀: (Batch, 100, 8, 8)
         # 在 forward 中我們會將其重塑(reshape)為: (Batch, 64, 100)
         # 因此進來的 in_channels = 64，時間序列長度 = 100
         self.block1 = nn.Sequential(
-            nn.Conv1d(in_channels=64, out_channels=32, kernel_size=8, padding='same'),
+            nn.Conv1d(in_channels=in_channels, out_channels=32, kernel_size=8, padding='same'),
             nn.BatchNorm1d(32),
             nn.ELU(),
             nn.Conv1d(in_channels=32, out_channels=32, kernel_size=8, padding='same'),
@@ -70,7 +73,7 @@ class DeepFingerprinting(nn.Module):
             nn.Dropout(0.5),
 
             # 輸出層：分類 8 個目標節點
-            nn.Linear(512, num_classes)
+            nn.Linear(512, node_num)
         )
 
     def forward(self, x):
@@ -79,7 +82,7 @@ class DeepFingerprinting(nn.Module):
         batch_size = x.size(0)
 
         # 2. 將 8x8 攤平成 64 維，形狀變成: (Batch, 100, 64)
-        x = x.view(batch_size, 100, 64)
+        x = x.view(batch_size, self.times_each_round, -1)
 
         # 3. 轉置維度以符合 Conv1d 的要求 (Batch, Channels, Length) -> (Batch, 64, 100)
         x = x.transpose(1, 2)
