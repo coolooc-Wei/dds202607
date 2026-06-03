@@ -91,7 +91,8 @@ if __name__ == "__main__":
     # for ratio in ratios:
     rounds = 700
     node_num = 8
-    file_name = f"oram_simulation_data_{node_num}_{rounds}"
+    times_each_round = 100
+    file_name = f"oram_simulation_data_{node_num}_{rounds}_{times_each_round}"
 
     print(f"\n=== 開始訓練模型: {file_name} ===")
 
@@ -133,7 +134,7 @@ if __name__ == "__main__":
     optimizer = optim.Adamax(model.parameters(), lr=0.002, weight_decay=1e-6)
 
     # 開始訓練
-    epochs = 50
+    epochs = 100
     best_val_acc = 0.0
 
     print("開始訓練...")
