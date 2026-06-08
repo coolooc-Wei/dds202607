@@ -6,7 +6,7 @@ times_each_round = 100
 real_communication_ratio = 0.3
 dummy_trans_ratio = 0.5
 
-USE_ORAM = True
+USE_ORAM = False
 
 if USE_ORAM:
     file_name = f"sim_datas/oram_simulation_data_{node_num}_{rounds}_{times_each_round}_{real_communication_ratio}_{dummy_trans_ratio}"

@@ -7,7 +7,7 @@ from setuptools.sandbox import save_modules
 from torch.utils.data import Dataset, DataLoader
 import matplotlib.pyplot as plt
 from df_model import DeepFingerprinting
-from gen_df_data import gen_data
+from gen_df_data import gen_data_mp
 
 
 # ==========================================
@@ -81,30 +81,17 @@ def evaluate(model, dataloader, criterion, device):
     return epoch_loss, epoch_acc
 
 
-# ==========================================
-# 3. 主程式
-# ==========================================
-if __name__ == "__main__":
-
-    node_num = 64
-    rounds = (node_num - 1) * 100  # (node_num-1) * n round,n = 10 or 100
-    times_each_round = 100
-    real_communication_ratio = 0.3
-    dummy_trans_ratio = 0.5
+def train(node_num, rounds, times_each_round, real_communication_ratio, dummy_trans_ratio,USE_ORAM, epochs, lr,gen_data_flag=False):
 
 
 
-    gen_data_flag = True  # False to load existing dataset, True to generate new dataset (which will overwrite existing dataset with the same name)
-
-    USE_ORAM = True
 
     if USE_ORAM:
         file_name = f"oram_simulation_data_{node_num}_{rounds}_{times_each_round}_{real_communication_ratio}_{dummy_trans_ratio}"
     else:
         file_name = f"sim_data_{node_num}_{rounds}_{times_each_round}_{real_communication_ratio}_no_oram"
 
-    epochs = 100
-    lr = 0.002
+
 
     print(f"=== 模型訓練參數 ===\n")
     print(
@@ -133,7 +120,7 @@ if __name__ == "__main__":
             not os.path.exists(val_x_path) or not os.path.exists(val_y_path) or \
             not os.path.exists(test_x_path) or not os.path.exists(test_y_path) or gen_data_flag:
         print("dataset not found, start to generate dataset...")
-        gen_data(node_num, rounds, times_each_round, real_communication_ratio, dummy_trans_ratio,USE_ORAM)
+        gen_data_mp(node_num, rounds, times_each_round, real_communication_ratio, dummy_trans_ratio, USE_ORAM)
 
     # 建立 Dataset 與 DataLoader
     train_dataset = ORAMDataset(train_x_path, train_y_path)
@@ -210,3 +197,20 @@ if __name__ == "__main__":
     plt.tight_layout()
     plt.savefig(chart_path)
     print(f"訓練趨勢圖已儲存至: {chart_path}")
+
+
+# ==========================================
+# 3. 主程式
+# ==========================================
+if __name__ == "__main__":
+    node_num = 8
+    rounds = (node_num - 1) * 100  # (node_num-1) * n round,n = 10 or 100
+    times_each_round = 100
+    real_communication_ratio = 0.3
+    dummy_trans_ratio = 1.0
+    gen_data_flag = False  # False to load existing dataset, True to generate new dataset (which will overwrite existing dataset with the same name)
+    USE_ORAM = True
+    epochs = 100
+    lr = 0.002
+
+    train(node_num, rounds, times_each_round, real_communication_ratio, dummy_trans_ratio, USE_ORAM, epochs, lr, gen_data_flag)

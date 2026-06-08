@@ -1,48 +1,32 @@
-from pathORAM_test import ORAM
-import numpy as np
+import os
 import random
 import time
+import shutil
+import numpy as np
+from multiprocessing import Pool, current_process
 from tqdm import tqdm
+from pathORAM_test import ORAM
 
-random.seed(time.time())  # set seed for reproducibility
 
-def gen_data(node_num, rounds, times_each_round, real_communication_ratio, dummy_trans_ratio,USE_ORAM = True):
+# ==========================================
+# 1. 子進程的資料生成核心任務 (Worker)
+# ==========================================
+def worker_gen_sub_data(args):
+    """
+    args: (target_num, rounds_per_group, node_num, times_each_round, real_communication_ratio, dummy_trans_ratio, USE_ORAM, temp_dir)
+    """
+    (target_num, rounds_per_group, node_num, times_each_round,
+     real_communication_ratio, dummy_trans_ratio, USE_ORAM, temp_dir) = args
 
-    if USE_ORAM:
-        file_name = f"sim_datas/oram_simulation_data_{node_num}_{rounds}_{times_each_round}_{real_communication_ratio}_{dummy_trans_ratio}"
-    else:
-        file_name = f"sim_datas/sim_data_{node_num}_{rounds}_{times_each_round}_{real_communication_ratio}_no_oram"
-        dummy_trans_ratio = 0
+    # 💡 關鍵：每個子進程必須依據自己的 PID 重新初始化隨機種子，避免生成重複資料
+    process_seed = int((time.time() * 1000) % 1e9) + os.getpid()
+    random.seed(process_seed)
+    np.random.seed(process_seed)
 
-    target_num = 0  # n nodes to send data to the target node, from 1 to node_num-1
-    train_x_set = []
-    train_y_set = []
-    val_x_set = []
-    val_y_set = []
-    test_x_set = []
-    test_y_set = []
     sim_res = []
     gts = []
-    for round_num in tqdm(range(rounds)):
-        # if round_num % 10 == 0:
-        #     print(f"round {round_num}")
-        if round_num % (rounds // (node_num - 1)) == 0:
-            if target_num != 0:
-                # shuffle sim_res and gt_tmp together
-                combined = list(zip(sim_res, gts))
-                random.shuffle(combined)
-                sim_res[:], gts[:] = zip(*combined)
-                train_x_set.extend(sim_res[:int(0.8 * len(sim_res))])
-                train_y_set.extend(gts[:int(0.8 * len(gts))])
-                val_x_set.extend(sim_res[int(0.8 * len(sim_res)):int(0.9 * len(sim_res))])
-                val_y_set.extend(gts[int(0.8 * len(gts)):int(0.9 * len(gts))])
-                test_x_set.extend(sim_res[int(0.9 * len(sim_res)):])
-                test_y_set.extend(gts[int(0.9 * len(gts)):])
 
-                sim_res = []
-                gts = []
-            target_num += 1
-
+    for _ in range(rounds_per_group):
         oram_list = []
         oram_num_list = []
 
@@ -50,18 +34,16 @@ def gen_data(node_num, rounds, times_each_round, real_communication_ratio, dummy
             oram_list.append(ORAM(node_num - 1, DEBUG_MODE=False, PATH_DEBUG=False))
             oram_num_list.append(i)
 
-        target_node = random.randint(0, node_num - 1)  # choose a target
-        # print(f"{target_node = }, {target_num = }")
+        target_node = random.randint(0, node_num - 1)  # 選擇目標節點
         gts.append(target_node)
         sim_tmp = []
-        for time in range(times_each_round):
 
+        for _ in range(times_each_round):
             random.shuffle(oram_num_list)
             for i in range(target_num):
-                if oram_num_list[i] == target_node:  # target can't send data to itself
-                    # swap i and target_num-1
+                if oram_num_list[i] == target_node:
                     oram_num_list[i], oram_num_list[target_num] = oram_num_list[target_num], oram_num_list[i]
-            # print(f"{oram_num_list[:target_num] = }")
+
             res = []
             is_real_round = (random.random() < real_communication_ratio)
 
@@ -69,23 +51,21 @@ def gen_data(node_num, rounds, times_each_round, real_communication_ratio, dummy
                 tmp = [0] * node_num
                 current_target = -1
                 is_real_sender = (num in oram_num_list[:target_num])
+
                 if is_real_sender and is_real_round:
                     current_target = target_node
                 elif random.random() < dummy_trans_ratio:
                     if is_real_sender:
-                        # if this node is a real sender, it can't send data to the target node in this round or itself
                         available_nodes = [n for n in range(node_num) if n != num and n != target_node]
                     else:
-                        # if this node is not a real sender, it can send data to any node except itself
                         available_nodes = [n for n in range(node_num) if n != num]
-
                     current_target = random.choice(available_nodes)
 
                 if current_target != -1:
                     if USE_ORAM:
                         oram = oram_list[num]
                         path_1, path_2 = oram.random_choose_two_path(
-                            current_target if current_target <= num else current_target - 1)  # if target_node > num, the target node will be num-1 in the oram with num nodes
+                            current_target if current_target <= num else current_target - 1)
                         choose_nodes = oram.get_ros_node_from_path(path_1, path_2)
                         oram.shuffle_path(choose_nodes)
                         for node in choose_nodes:
@@ -96,39 +76,114 @@ def gen_data(node_num, rounds, times_each_round, real_communication_ratio, dummy
                         tmp[current_target] = 1
 
                 res.append(tmp)
-            # print(f"{res = }")
             sim_tmp.append(res)
         sim_res.append(sim_tmp)
-        # print(f"{sim_tmp = }")
-        # sim_res.append(sim_tmp)
 
+    # 在本分組（目前這個 target_num）內部進行獨立打亂與 8:1:1 平均切分
     if len(sim_res) > 0:
         combined = list(zip(sim_res, gts))
         random.shuffle(combined)
         sim_res[:], gts[:] = zip(*combined)
-        train_x_set.extend(sim_res[:int(0.8 * len(sim_res))])
-        train_y_set.extend(gts[:int(0.8 * len(gts))])
-        val_x_set.extend(sim_res[int(0.8 * len(sim_res)):int(0.9 * len(sim_res))])
-        val_y_set.extend(gts[int(0.8 * len(gts)):int(0.9 * len(gts))])
-        test_x_set.extend(sim_res[int(0.9 * len(sim_res)):])
-        test_y_set.extend(gts[int(0.9 * len(gts)):])
-    print(f"{len(train_x_set) = }")
-    print(f"{len(test_x_set) = }")
-    print(f"{len(val_x_set) = }")
 
-    np.save(f"{file_name}_train_x.npy", np.array(train_x_set))
-    np.save(f"{file_name}_train_y.npy", np.array(train_y_set))
-    np.save(f"{file_name}_val_x.npy", np.array(val_x_set))
-    np.save(f"{file_name}_val_y.npy", np.array(val_y_set))
-    np.save(f"{file_name}_test_x.npy", np.array(test_x_set))
-    np.save(f"{file_name}_test_y.npy", np.array(test_y_set))
+        n_total = len(sim_res)
+        idx_80 = int(0.8 * n_total)
+        idx_90 = int(0.9 * n_total)
+
+        # 轉成 numpy array 後直接存到硬碟暫存區，避免跨進程的大型記憶體搬移
+        np.save(os.path.join(temp_dir, f"t_{target_num}_train_x.npy"), np.array(sim_res[:idx_80]))
+        np.save(os.path.join(temp_dir, f"t_{target_num}_train_y.npy", ), np.array(gts[:idx_80]))
+        np.save(os.path.join(temp_dir, f"t_{target_num}_val_x.npy"), np.array(sim_res[idx_80:idx_90]))
+        np.save(os.path.join(temp_dir, f"t_{target_num}_val_y.npy"), np.array(gts[idx_80:idx_90]))
+        np.save(os.path.join(temp_dir, f"t_{target_num}_test_x.npy"), np.array(sim_res[idx_90:]))
+        np.save(os.path.join(temp_dir, f"t_{target_num}_test_y.npy"), np.array(gts[idx_90:]))
+
+    return target_num
+
+
+# ==========================================
+# 2. 主控制流程
+# ==========================================
+def gen_data_mp(node_num, rounds, times_each_round, real_communication_ratio, dummy_trans_ratio, USE_ORAM=True):
+    if USE_ORAM:
+        file_name = f"sim_datas/oram_simulation_data_{node_num}_{rounds}_{times_each_round}_{real_communication_ratio}_{dummy_trans_ratio}"
+    else:
+        file_name = f"sim_datas/sim_data_{node_num}_{rounds}_{times_each_round}_{real_communication_ratio}_no_oram"
+        dummy_trans_ratio = 0
+
+    os.makedirs("sim_datas", exist_ok=True)
+
+    # 建立多進程用的臨時暫存資料夾
+    temp_dir = f"sim_datas/mp_temp_{int(time.time())}"
+    os.makedirs(temp_dir, exist_ok=True)
+
+    # 每個 target_num 分組應該分配到的回合數
+    rounds_per_group = rounds // (node_num - 1)
+
+    # 建立進程池任務參數包 (共有 node_num - 1 個分組，例如 7 個)
+    tasks = []
+    for target_num in range(1, node_num):
+        tasks.append((
+            target_num, rounds_per_group, node_num, times_each_round,
+            real_communication_ratio, dummy_trans_ratio, USE_ORAM, temp_dir
+        ))
+
+    # 啟動多進程並搭配 tqdm 顯示進度條
+    print(f"=== 啟動多進程平行生成資料 (共 {node_num - 1} 個子進程平行處理) ===")
+    # 依你的 CPU 核心數自動調配，通常可以設為和任務數一樣 (node_num - 1)
+    num_processes = min(os.cpu_count(), len(tasks))
+
+    with Pool(processes=num_processes) as pool:
+        # 使用 imap_unordered 能在子進程一完成時就回傳，方便進度條即時跳動
+        for t_num in tqdm(pool.imap_unordered(worker_gen_sub_data, tasks), total=len(tasks)):
+            pass
+
+    # ==========================================
+    # 3. 合併所有暫存檔並儲存最終結果
+    # ==========================================
+    print("\n=== 平行生成完畢，正在合併各進程資料... ===")
+    train_x, train_y = [], []
+    val_x, val_y = [], []
+    test_x, test_y = [], []
+
+    for target_num in range(1, node_num):
+        train_x.append(np.load(os.path.join(temp_dir, f"t_{target_num}_train_x.npy")))
+        train_y.append(np.load(os.path.join(temp_dir, f"t_{target_num}_train_y.npy")))
+        val_x.append(np.load(os.path.join(temp_dir, f"t_{target_num}_val_x.npy")))
+        val_y.append(np.load(os.path.join(temp_dir, f"t_{target_num}_val_y.npy")))
+        test_x.append(np.load(os.path.join(temp_dir, f"t_{target_num}_test_x.npy")))
+        test_y.append(np.load(os.path.join(temp_dir, f"t_{target_num}_test_y.npy")))
+
+    # 執行最後的縱向拼接
+    train_x_final = np.concatenate(train_x, axis=0)
+    train_y_final = np.concatenate(train_y, axis=0)
+    val_x_final = np.concatenate(val_x, axis=0)
+    val_y_final = np.concatenate(val_y, axis=0)
+    test_x_final = np.concatenate(test_x, axis=0)
+    test_y_final = np.concatenate(test_y, axis=0)
+
+    print(f"\n== 資料集最終統計 ==")
+    print(f"Train_X Shape: {train_x_final.shape} | Train_Y Shape: {train_y_final.shape}")
+    print(f"Val_X   Shape: {val_x_final.shape} | Val_Y   Shape: {val_y_final.shape}")
+    print(f"Test_X  Shape: {test_x_final.shape} | Test_Y  Shape: {test_y_final.shape}")
+
+    # 儲存為最終大檔
+    np.save(f"{file_name}_train_x.npy", train_x_final)
+    np.save(f"{file_name}_train_y.npy", train_y_final)
+    np.save(f"{file_name}_val_x.npy", val_x_final)
+    np.save(f"{file_name}_val_y.npy", val_y_final)
+    np.save(f"{file_name}_test_x.npy", test_x_final)
+    np.save(f"{file_name}_test_y.npy", test_y_final)
+
+    # 移除暫存資料夾
+    shutil.rmtree(temp_dir)
+    print("暫存清除完成，全部作業結束！")
+
 
 if __name__ == "__main__":
-
-    node_num = 8
-    rounds = 700 # (node_num-1) * n round,n = 10 or 100
+    node_num = 64
+    rounds = (node_num-1)*100
     times_each_round = 100
     real_communication_ratio = 0.3
     dummy_trans_ratio = 0.5
 
-    gen_data(node_num, rounds, times_each_round, real_communication_ratio, dummy_trans_ratio,USE_ORAM=False)
+    gen_data_mp(node_num, rounds, times_each_round, real_communication_ratio, dummy_trans_ratio, USE_ORAM=True)
