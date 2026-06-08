@@ -2,7 +2,7 @@ import math
 import random
 import time
 
-random.seed(200) # set seed for reproducibility
+random.seed(time.time()) # set seed for reproducibility
 
 class ORAM:
     def __init__(self, num_blocks, DEBUG_MODE=False,PATH_DEBUG=False,PATH_PATH = ""):

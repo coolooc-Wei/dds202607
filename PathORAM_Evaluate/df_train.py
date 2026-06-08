@@ -5,7 +5,10 @@ import torch.nn as nn
 import torch.optim as optim
 from setuptools.sandbox import save_modules
 from torch.utils.data import Dataset, DataLoader
+import matplotlib.pyplot as plt
 from df_model import DeepFingerprinting
+from gen_df_data import gen_data
+
 
 # ==========================================
 # 1. 定義自訂 Dataset 來讀取 .npy 檔案
@@ -84,11 +87,29 @@ def evaluate(model, dataloader, criterion, device):
 if __name__ == "__main__":
 
     node_num = 64
-    rounds = 630
+    rounds = (node_num - 1) * 100  # (node_num-1) * n round,n = 10 or 100
     times_each_round = 100
-    random_communication_ratio = 0
-    file_name = f"oram_simulation_data_{node_num}_{rounds}_{times_each_round}_{random_communication_ratio}"
-    
+    real_communication_ratio = 0.3
+    dummy_trans_ratio = 0.5
+
+
+
+    gen_data_flag = True  # False to load existing dataset, True to generate new dataset (which will overwrite existing dataset with the same name)
+
+    USE_ORAM = True
+
+    if USE_ORAM:
+        file_name = f"oram_simulation_data_{node_num}_{rounds}_{times_each_round}_{real_communication_ratio}_{dummy_trans_ratio}"
+    else:
+        file_name = f"sim_data_{node_num}_{rounds}_{times_each_round}_{real_communication_ratio}_no_oram"
+
+    epochs = 100
+    lr = 0.002
+
+    print(f"=== 模型訓練參數 ===\n")
+    print(
+        f"{epochs = } \n{lr = } \n{node_num = } \n{rounds = } \n{times_each_round = } \n{real_communication_ratio = } \n{dummy_trans_ratio = }")
+
     print(f"use {file_name} to train model")
 
     print(f"\n=== 開始訓練模型: {file_name} ===")
@@ -108,9 +129,11 @@ if __name__ == "__main__":
     test_x_path = f"{base_path}_test_x.npy"
     test_y_path = f"{base_path}_test_y.npy"
 
-    # 檢查檔案是否存在
-    if not os.path.exists(train_x_path):
-        raise FileNotFoundError(f"找不到訓練檔案：{train_x_path}，請先確認生成路徑。")
+    if not os.path.exists(train_x_path) or not os.path.exists(train_y_path) or \
+            not os.path.exists(val_x_path) or not os.path.exists(val_y_path) or \
+            not os.path.exists(test_x_path) or not os.path.exists(test_y_path) or gen_data_flag:
+        print("dataset not found, start to generate dataset...")
+        gen_data(node_num, rounds, times_each_round, real_communication_ratio, dummy_trans_ratio,USE_ORAM)
 
     # 建立 Dataset 與 DataLoader
     train_dataset = ORAMDataset(train_x_path, train_y_path)
@@ -128,16 +151,22 @@ if __name__ == "__main__":
 
     # 設定損失函數與優化器 (DF 原文推薦 Adamax)
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adamax(model.parameters(), lr=0.002, weight_decay=1e-6)
+    optimizer = optim.Adamax(model.parameters(), lr=lr, weight_decay=1e-6)
 
     # 開始訓練
-    epochs = 100
+    train_losses, train_accs = [], []
+    val_losses, val_accs = [], []
     best_val_acc = 0.0
 
     print("開始訓練...")
     for epoch in range(epochs):
         train_loss, train_acc = train_epoch(model, train_loader, criterion, optimizer, device)
         val_loss, val_acc = evaluate(model, val_loader, criterion, device)
+
+        train_losses.append(train_loss)
+        train_accs.append(train_acc)
+        val_losses.append(val_loss)
+        val_accs.append(val_acc)
 
         print(f"Epoch [{epoch + 1:02d}/{epochs}] "
               f"Train Loss: {train_loss:.4f} | Train Acc: {train_acc * 100:.2f}% | "
@@ -153,3 +182,31 @@ if __name__ == "__main__":
     model.load_state_dict(torch.load(save_model_path))
     test_loss, test_acc = evaluate(model, test_loader, criterion, device)
     print(f"== 最終測試結果 ==\nTest Loss: {test_loss:.4f} | Test Acc: {test_acc * 100:.2f}%")
+
+    plt.figure(figsize=(12, 5))
+
+    # 子圖 1: Loss 變化
+    plt.subplot(1, 2, 1)
+    plt.plot(range(1, epochs + 1), train_losses, label='Train Loss')
+    plt.plot(range(1, epochs + 1), val_losses, label='Val Loss')
+    plt.xlabel('Epochs')
+    plt.ylabel('Loss')
+    plt.title('Loss Trend')
+    plt.legend()
+    plt.grid(True)
+
+    # 子圖 2: Accuracy 變化
+    plt.subplot(1, 2, 2)
+    plt.plot(range(1, epochs + 1), [acc * 100 for acc in train_accs], label='Train Acc')
+    plt.plot(range(1, epochs + 1), [acc * 100 for acc in val_accs], label='Val Acc')
+    plt.xlabel('Epochs')
+    plt.ylabel('Accuracy (%)')
+    plt.title('Accuracy Trend')
+    plt.legend()
+    plt.grid(True)
+
+    # 儲存趨勢圖
+    chart_path = f"models/figs/{file_name}_trend_epoch_{epochs}_lr_{lr}_test_loss_{test_loss:.4f}_acc_{test_acc * 100:.2f}%.png"
+    plt.tight_layout()
+    plt.savefig(chart_path)
+    print(f"訓練趨勢圖已儲存至: {chart_path}")
