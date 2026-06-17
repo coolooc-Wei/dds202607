@@ -4,38 +4,20 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import TensorDataset, DataLoader
 import matplotlib.pyplot as plt
-from df_model import DeepFingerprinting
-from gen_df_data import gen_data_mp
 from datetime import datetime
-from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, roc_curve, auc,f1_score
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, roc_curve, auc, f1_score
 from sklearn.preprocessing import label_binarize
+from sklearn.model_selection import train_test_split
+
+# 匯入自訂的模型與生成資料函數
+from df_model_single_node import DeepFingerprinting
+from gen_df_data_single_node import generate_sliding_window_dataset
 
 
 # ==========================================
-# 1. 定義自訂 Dataset 來讀取 .npy 檔案
-# ==========================================
-class ORAMDataset(Dataset):
-    def __init__(self, x_path, y_path):
-        # 載入 numpy 檔案
-        self.x_data = np.load(x_path).astype(np.float32)
-        self.y_data = np.load(y_path).astype(np.int64)
-
-    def __len__(self):
-        return len(self.x_data)
-
-    def __getitem__(self, idx):
-        x = torch.from_numpy(self.x_data[idx])  # 形狀: (100, 7)
-        y = torch.tensor(self.y_data[idx])  # 純量
-
-        # 關鍵：Conv1d 需要 (Channels, Length) -> 將 (100, 7) 轉成 (7, 100)
-        x = x.transpose(0, 1)
-        return x, y
-
-
-# ==========================================
-# 2. 訓練與驗證函數
+# 1. 訓練與驗證函數
 # ==========================================
 def train_epoch(model, dataloader, criterion, optimizer, device):
     model.train()
@@ -83,6 +65,7 @@ def evaluate(model, dataloader, criterion, device):
     epoch_acc = correct / total
     return epoch_loss, epoch_acc
 
+
 def get_test_metrics(model, dataloader, device):
     model.eval()
     all_labels = []
@@ -105,73 +88,66 @@ def get_test_metrics(model, dataloader, device):
     return np.array(all_labels), np.array(all_preds), np.array(all_probs)
 
 
-def train(node_num, rounds, times_each_round, real_communication_ratio, dummy_trans_ratio,USE_ORAM, epochs, lr,gen_data_flag=False):
-
+# ==========================================
+# 2. 主訓練流程
+# ==========================================
+def train(node_num, total_rounds, window_size, epochs, lr, gen_data_flag=False):
     time_str = datetime.now().strftime("%Y%m%d-%H%M")
-
-    if USE_ORAM:
-        file_name = f"oram_simulation_data_{node_num}_{rounds}_{times_each_round}_{real_communication_ratio}_{dummy_trans_ratio}"
-    else:
-        file_name = f"sim_data_{node_num}_{rounds}_{times_each_round}_{real_communication_ratio}_no_oram"
-
+    file_name = f"oram_seq_{total_rounds}_{window_size}_{node_num}"
     folder_name = f"{time_str}_{file_name}"
+
+    # 建立所需的資料夾
     os.makedirs(f"res/{folder_name}", exist_ok=True)
+    os.makedirs("sim_datas", exist_ok=True)
+    os.makedirs("models", exist_ok=True)
 
+    print(f"=== 模型訓練參數 ===")
+    print(f"{epochs = } \n{lr = } \n{node_num = } \n{total_rounds = } \n{window_size = }")
+    print(f"\n=== 開始流程: {file_name} ===")
 
-
-    print(f"=== 模型訓練參數 ===\n")
-    print(
-        f"{epochs = } \n{lr = } \n{node_num = } \n{rounds = } \n{times_each_round = } \n{real_communication_ratio = } \n{dummy_trans_ratio = }")
-
-    print(f"use {file_name} to train model")
-
-    print(f"\n=== 開始訓練模型: {file_name} ===")
-
-    # 設定硬體裝置 (有 GPU 就用 GPU)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"使用裝置: {device}")
+    print(f"使用訓練裝置: {device}")
 
-    base_path = f"sim_datas/{file_name}"
-
+    x_path = f"sim_datas/X_oram_seq_{total_rounds}_{window_size}_{node_num}.npy"
+    y_path = f"sim_datas/y_oram_seq_{total_rounds}_{window_size}_{node_num}.npy"
     save_model_path = f"models/{file_name}_best_model.pth"
 
-    train_x_path = f"{base_path}_train_x.npy"
-    train_y_path = f"{base_path}_train_y.npy"
-    val_x_path = f"{base_path}_val_x.npy"
-    val_y_path = f"{base_path}_val_y.npy"
-    test_x_path = f"{base_path}_test_x.npy"
-    test_y_path = f"{base_path}_test_y.npy"
+    # 如果要求重新產生資料或找不到資料，就呼叫生成腳本
+    if not os.path.exists(x_path) or not os.path.exists(y_path) or gen_data_flag:
+        print("資料集不存在或要求重新生成，開始啟動 ORAM 模擬...")
+        generate_sliding_window_dataset(total_rounds=total_rounds, window_size=window_size, num_nodes=node_num)
 
-    if not os.path.exists(train_x_path) or not os.path.exists(train_y_path) or \
-            not os.path.exists(val_x_path) or not os.path.exists(val_y_path) or \
-            not os.path.exists(test_x_path) or not os.path.exists(test_y_path) or gen_data_flag:
-        print("dataset not found, start to generate dataset...")
-        gen_data_mp(node_num, rounds, times_each_round, real_communication_ratio, dummy_trans_ratio, USE_ORAM)
+    # 1. 讀取 Numpy 資料
+    print("正在載入與切割資料集...")
+    X_data = np.load(x_path).astype(np.float32)
+    y_data = np.load(y_path).astype(np.int64)
 
-    # 建立 Dataset 與 DataLoader
-    train_dataset = ORAMDataset(train_x_path, train_y_path)
-    val_dataset = ORAMDataset(val_x_path, val_y_path)
-    test_dataset = ORAMDataset(test_x_path, test_y_path)
+    # 2. 自動切分資料集：80% Train, 10% Val, 10% Test
+    X_temp, X_test, y_temp, y_test = train_test_split(X_data, y_data, test_size=0.1, random_state=42)
+    X_train, X_val, y_train, y_val = train_test_split(X_temp, y_temp, test_size=1 / 9,
+                                                      random_state=42)  # 0.9 * (1/9) = 0.1
 
-    # 訓練集要 shuffle 打亂（雖然前面 target 內打亂了，但同 target 還是連在一起，這裡再全局 shuffle 一次）
-    train_loader = DataLoader(train_dataset, batch_size=128, shuffle=True, num_workers=2)
-    val_loader = DataLoader(val_dataset, batch_size=128, shuffle=False, num_workers=2)
-    test_loader = DataLoader(test_dataset, batch_size=128, shuffle=False, num_workers=2)
+    print(f"資料切割完畢: 訓練集 {len(X_train)} 筆, 驗證集 {len(X_val)} 筆, 測試集 {len(X_test)} 筆")
 
-    # 初始化模型（把之前的 DeepFingerprinting 類別放同個檔案或 import 進來）
-    # 這裡因為你的序列長度從 1000 縮短成 100，模型依然可以用（因為結尾有 AdaptiveMaxPool1d(1)）
-    model = DeepFingerprinting(node_num=node_num, times_each_round=times_each_round).to(device)
+    # 3. 建立 TensorDataset 與 DataLoader
+    train_dataset = TensorDataset(torch.tensor(X_train), torch.tensor(y_train))
+    val_dataset = TensorDataset(torch.tensor(X_val), torch.tensor(y_val))
+    test_dataset = TensorDataset(torch.tensor(X_test), torch.tensor(y_test))
 
-    # 設定損失函數與優化器 (DF 原文推薦 Adamax)
+    train_loader = DataLoader(train_dataset, batch_size=128, shuffle=True)
+    val_loader = DataLoader(val_dataset, batch_size=128, shuffle=False)
+    test_loader = DataLoader(test_dataset, batch_size=128, shuffle=False)
+
+    # 4. 初始化模型、損失函數與優化器
+    model = DeepFingerprinting(node_num=node_num, window_size=window_size).to(device)
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adamax(model.parameters(), lr=lr, weight_decay=1e-6)
 
-    # 開始訓練
     train_losses, train_accs = [], []
     val_losses, val_accs = [], []
     best_val_acc = 0.0
 
-    print("開始訓練...")
+    print("\n開始訓練 CNN 模型...")
     for epoch in range(epochs):
         train_loss, train_acc = train_epoch(model, train_loader, criterion, optimizer, device)
         val_loss, val_acc = evaluate(model, val_loader, criterion, device)
@@ -185,26 +161,31 @@ def train(node_num, rounds, times_each_round, real_communication_ratio, dummy_tr
               f"Train Loss: {train_loss:.4f} | Train Acc: {train_acc * 100:.2f}% | "
               f"Val Loss: {val_loss:.4f} | Val Acc: {val_acc * 100:.2f}%")
 
-        # 儲存最佳模型
         if val_acc > best_val_acc:
             best_val_acc = val_acc
             torch.save(model.state_dict(), save_model_path)
 
-    print("\n訓練結束！載入最佳權重進行測試...")
-    # 載入表現最好的權重
+    print("\n訓練結束！載入最佳權重進行最終測試...")
     model.load_state_dict(torch.load(save_model_path))
     test_loss, test_acc = evaluate(model, test_loader, criterion, device)
-    print(f"== 最終測試結果 ==\nTest Loss: {test_loss:.4f} | Test Acc: {test_acc * 100:.2f}%")
 
     y_true, y_pred, y_probs = get_test_metrics(model, test_loader, device)
-
     macro_f1 = f1_score(y_true, y_pred, average='macro')
-    print(
-        f"== 最終測試結果 ==\nTest Loss: {test_loss:.4f} | Test Acc: {test_acc * 100:.2f}% | Macro F1-Score: {macro_f1:.4f}")
 
+    print(f"\n==============================================")
+    print(f"== 最終深度學習攻擊測試結果 ==")
+    print(f"Test Loss: {test_loss:.4f} | Test Acc: {test_acc * 100:.2f}% | Macro F1: {macro_f1:.4f}")
+    print(f"==============================================\n")
+
+    with open(f"res/{folder_name}/{file_name}_test_metrics.txt", "w") as f:
+        f.write(f"Test Loss: {test_loss:.4f}\n")
+        f.write(f"Test Accuracy: {test_acc * 100:.2f}%\n")
+        f.write(f"Macro F1 Score: {macro_f1:.4f}\n")
+
+    # ==========================================
+    # 繪圖區塊
+    # ==========================================
     plt.figure(figsize=(12, 5))
-
-    # 子圖 1: Loss 變化
     plt.subplot(1, 2, 1)
     plt.plot(range(1, epochs + 1), train_losses, label='Train Loss')
     plt.plot(range(1, epochs + 1), val_losses, label='Val Loss')
@@ -214,7 +195,6 @@ def train(node_num, rounds, times_each_round, real_communication_ratio, dummy_tr
     plt.legend()
     plt.grid(True)
 
-    # 子圖 2: Accuracy 變化
     plt.subplot(1, 2, 2)
     plt.plot(range(1, epochs + 1), [acc * 100 for acc in train_accs], label='Train Acc')
     plt.plot(range(1, epochs + 1), [acc * 100 for acc in val_accs], label='Val Acc')
@@ -224,37 +204,48 @@ def train(node_num, rounds, times_each_round, real_communication_ratio, dummy_tr
     plt.legend()
     plt.grid(True)
 
-    # 儲存趨勢圖
-    chart_path = f"res/{folder_name}/{file_name}_trend_epoch_{epochs}_lr_{lr}_test_loss_{test_loss:.4f}_acc_{test_acc * 100:.2f}%_f1_{macro_f1:.4f}.png"
+    chart_path = f"res/{folder_name}/{file_name}_trend.png"
     plt.tight_layout()
     plt.savefig(chart_path)
-    print(f"訓練趨勢圖已儲存至: {chart_path}")
+    plt.close()
 
-    # 4.2 繪製混淆矩陣
+    # 繪製混淆矩陣
     cm = confusion_matrix(y_true, y_pred, labels=range(node_num))
-    plt.figure(figsize=(10, 8))
+
+    # 動態決定圖片大小：節點大於 16 時，把畫布拉大
+    fig_size = (10, 8) if node_num <= 16 else (14, 12)
+    fig, ax = plt.subplots(figsize=fig_size)
+
     disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=range(node_num))
 
-    # 若節點很多 (如 64)，隱藏格內數字，避免畫面太亂
-    values_format = 'd' if node_num <= 10 else None
-    disp.plot(cmap=plt.cm.Blues, ax=plt.gca(), values_format=values_format)
-    plt.title('Confusion Matrix')
+    # 關鍵：節點數大於 16 時，徹底關閉格子內的數字顯示 (include_values=False)
+    show_values = True if node_num <= 16 else False
+    disp.plot(cmap=plt.cm.Blues, ax=ax, include_values=show_values, values_format='d' if show_values else None)
+
+    # 處理軸標籤擁擠問題：如果節點很多，每隔幾步才顯示一次標籤
+    if node_num > 16:
+        step = 4 if node_num <= 32 else 8  # 依據節點數量決定標籤間隔
+        ax.set_xticks(np.arange(0, node_num, step))
+        ax.set_yticks(np.arange(0, node_num, step))
+        ax.set_xticklabels(np.arange(0, node_num, step))
+        ax.set_yticklabels(np.arange(0, node_num, step))
+        # 讓 X 軸標籤轉 45 度，更好閱讀
+        plt.xticks(rotation=45)
+
+    plt.title(f'Confusion Matrix ({node_num} Nodes)')
     cm_path = f"res/{folder_name}/{file_name}_confusion_matrix.png"
+    plt.tight_layout()
     plt.savefig(cm_path)
     plt.close()
 
-    # 4.3 繪製多分類 ROC 曲線 (One-vs-Rest)
+    # 繪製 ROC
     y_true_bin = label_binarize(y_true, classes=range(node_num))
-
     fpr, tpr, roc_auc = dict(), dict(), dict()
-    # 針對每一個節點計算 ROC
     for i in range(node_num):
-        # 確保該類別有在 test set 中出現
         if np.sum(y_true_bin[:, i]) > 0:
             fpr[i], tpr[i], _ = roc_curve(y_true_bin[:, i], y_probs[:, i])
             roc_auc[i] = auc(fpr[i], tpr[i])
 
-    # 計算 Macro-average ROC
     all_fpr = np.unique(np.concatenate([fpr[i] for i in range(node_num) if i in fpr]))
     mean_tpr = np.zeros_like(all_fpr)
     valid_classes = 0
@@ -270,13 +261,11 @@ def train(node_num, rounds, times_each_round, real_communication_ratio, dummy_tr
         roc_auc["macro"] = auc(fpr["macro"], tpr["macro"])
 
     plt.figure(figsize=(10, 8))
-    # 畫出宏觀平均線 (Macro-average)，這條線最能代表整體的防禦強度
     if "macro" in fpr:
         plt.plot(fpr["macro"], tpr["macro"],
                  label=f'Macro-average ROC curve (area = {roc_auc["macro"]:.3f})',
                  color='navy', linestyle=':', linewidth=4)
 
-    # 如果節點數小於等於 10 個，就把每條獨立的線也畫出來
     if node_num <= 10:
         colors = plt.cm.get_cmap('tab10', node_num)
         for i in range(node_num):
@@ -284,42 +273,40 @@ def train(node_num, rounds, times_each_round, real_communication_ratio, dummy_tr
                 plt.plot(fpr[i], tpr[i], color=colors(i), lw=1.5,
                          label=f'ROC of Node {i} (area = {roc_auc[i]:.3f})')
 
-    plt.plot([0, 1], [0, 1], 'k--', lw=2)  # 對角隨機猜測線
+    plt.plot([0, 1], [0, 1], 'k--', lw=2)
     plt.xlim([0.0, 1.0])
     plt.ylim([0.0, 1.05])
     plt.xlabel('False Positive Rate')
     plt.ylabel('True Positive Rate')
-    plt.title('Receiver Operating Characteristic (Multi-Class)')
-    # 如果標籤太多就不放圖例，避免擋住圖表
-    if node_num <= 10:
-        plt.legend(loc="lower right")
-    else:
-        # 大於 10 個節點就只放宏觀平均的圖例，避免畫面太亂
-        plt.legend(loc="lower right", fontsize='small')
+    plt.title('ROC Curve for Deep Learning Attack')
+    plt.legend(loc="lower right" if node_num <= 10 else "lower right", fontsize='small')
 
-    roc_path = f"res/{folder_name}/{file_name}_roc_curve.png"
+    roc_path = f"res/{folder_name}/{file_name}_roc.png"
     plt.savefig(roc_path)
     plt.close()
 
-    print(f"\n所有圖表已儲存至 res/ 資料夾內：")
-    print(f"1. 訓練趨勢圖: {chart_path}")
-    print(f"2. 混淆矩陣:   {cm_path}")
-    print(f"3. ROC 曲線:   {roc_path}")
+    print(f"所有圖表已儲存至 res/{folder_name}/ 資料夾內！")
 
 
 # ==========================================
-# 3. 主程式
+# 3. 啟動區塊
 # ==========================================
 if __name__ == "__main__":
-    node_num = 8
-    rounds = (node_num - 1) * 100  # (node_num-1) * n round,n = 10 or 100
-    times_each_round = 100
+    # --- 參數設定區 ---
+    NODE_NUM = 8-1 # 系統中的 Node 總數 2**n-1
+    TOTAL_ROUNDS = 20000  # 要生成的通訊總回合數 (對應 24991 筆有效樣本)
+    WINDOW_SIZE = 100  # 滑動視窗長度 (駭客一次觀察連續幾次回合)
 
-    real_communication_ratio = 0.3
-    dummy_trans_ratio = 0.5
-    gen_data_flag = True  # False to load existing dataset, True to generate new dataset (which will overwrite existing dataset with the same name)
-    USE_ORAM = True
-    epochs = 100
-    lr = 0.002
+    # 訓練超參數
+    EPOCHS = 30  # 因為這份數據特徵早就被徹底抹除，大概 20 Epoch 就會確認 Loss 下不去
+    LR = 0.002
 
-    train(node_num, rounds, times_each_round, real_communication_ratio, dummy_trans_ratio, USE_ORAM, epochs, lr, gen_data_flag)
+    # 如果 True，會覆蓋現有資料重新透過 ORAM 生成新的通訊軌跡
+    GEN_DATA_FLAG = True
+
+    train(node_num=NODE_NUM,
+          total_rounds=TOTAL_ROUNDS,
+          window_size=WINDOW_SIZE,
+          epochs=EPOCHS,
+          lr=LR,
+          gen_data_flag=GEN_DATA_FLAG)

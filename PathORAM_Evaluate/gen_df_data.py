@@ -19,12 +19,14 @@ def worker_gen_sub_data(args):
      real_communication_ratio, dummy_trans_ratio, USE_ORAM, temp_dir) = args
 
     # 💡 關鍵：每個子進程必須依據自己的 PID 重新初始化隨機種子，避免生成重複資料
-    process_seed = int((time.time() * 1000) % 1e9) + os.getpid()
+    process_seed = int(time.time_ns() % 1e9) + os.getpid()
     random.seed(process_seed)
     np.random.seed(process_seed)
 
     sim_res = []
     gts = []
+
+    target_num_tmp = target_num
 
     for _ in range(rounds_per_group):
         oram_list = []
@@ -39,33 +41,53 @@ def worker_gen_sub_data(args):
         sim_tmp = []
 
         for _ in range(times_each_round):
-            random.shuffle(oram_num_list)
-            for i in range(target_num):
-                if oram_num_list[i] == target_node:
-                    oram_num_list[i], oram_num_list[target_num] = oram_num_list[target_num], oram_num_list[i]
+
+            # target_num = random.randint(0, node_num - 1) # for test
+
+            # 🌟 修復 1：決定這回合的全域目標
+            is_real_round = (random.random() < real_communication_ratio)
+            should_dummy = (random.random() < dummy_trans_ratio)
+
+            # if is_real_round:
+            #     global_target = target_node
+            # else:
+            #     available_targets = [n for n in range(node_num) if n != target_node]
+            #     global_target = random.choice(available_targets)
+
+            # 🌟 修復 2：直接隨機挑選發送端 (絕對不要刻意排除 target_node)
+            primary_senders = random.sample(range(node_num), target_num)
+
+            background_traffic_ratio = 0.20
 
             res = []
-            is_real_round = (random.random() < real_communication_ratio)
-
             for num in range(node_num):
                 tmp = [0] * node_num
+
+                is_primary_sender = (num in primary_senders)
+                should_send = False
                 current_target = -1
-                is_real_sender = (num in oram_num_list[:target_num])
 
-                if is_real_sender and is_real_round:
-                    current_target = target_node
-                elif random.random() < dummy_trans_ratio:
-                    if is_real_sender:
-                        available_nodes = [n for n in range(node_num) if n != num and n != target_node]
+                if is_primary_sender and is_real_round:
+
+                    should_send = True
+
+                    # 🌟 修復 3：發送端反射機制
+                    # 如果我被選為發送端，但我剛好就是要接收的 global_target (不能發給自己)
+                    # 我必須維持「發送量」，所以我把這發封包隨機打給別人當作 Dummy！
+                    if target_node == num:
+                        current_target = random.choice([n for n in range(node_num) if n != num])
                     else:
-                        available_nodes = [n for n in range(node_num) if n != num]
-                    current_target = random.choice(available_nodes)
+                        current_target = target_node
+                elif random.random() < background_traffic_ratio or random.random() < dummy_trans_ratio:
+                        should_send = True
+                        current_target = random.choice([n for n in range(node_num) if n != num])
 
-                if current_target != -1:
+                # === ORAM 發送區塊維持原樣 ===
+                if should_send:
                     if USE_ORAM:
                         oram = oram_list[num]
-                        path_1, path_2 = oram.random_choose_two_path(
-                            current_target if current_target <= num else current_target - 1)
+                        mapped_target = current_target if current_target <= num else current_target - 1
+                        path_1, path_2 = oram.random_choose_two_path(mapped_target)
                         choose_nodes = oram.get_ros_node_from_path(path_1, path_2)
                         oram.shuffle_path(choose_nodes)
                         for node in choose_nodes:
@@ -80,6 +102,8 @@ def worker_gen_sub_data(args):
         sim_res.append(sim_tmp)
 
     # 在本分組（目前這個 target_num）內部進行獨立打亂與 8:1:1 平均切分
+
+    target_num = target_num_tmp
     if len(sim_res) > 0:
         combined = list(zip(sim_res, gts))
         random.shuffle(combined)
@@ -180,9 +204,9 @@ def gen_data_mp(node_num, rounds, times_each_round, real_communication_ratio, du
 
 
 if __name__ == "__main__":
-    node_num = 64
-    rounds = (node_num-1)*100
-    times_each_round = 100
+    node_num = 8
+    rounds = (node_num-1)*10
+    times_each_round = 10
     real_communication_ratio = 0.3
     dummy_trans_ratio = 0.5
 

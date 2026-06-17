@@ -1,12 +1,12 @@
 import numpy as np
 
-node_num = 64
+node_num = 8
 rounds = (node_num - 1) * 100  # (node_num-1) * n round,n = 10 or 100
-times_each_round = 100
-real_communication_ratio = 0.3
-dummy_trans_ratio = 0.5
+times_each_round = 1000
+real_communication_ratio = 0.1428
+dummy_trans_ratio = 1.0
 
-USE_ORAM = False
+USE_ORAM = True
 
 if USE_ORAM:
     file_name = f"sim_datas/oram_simulation_data_{node_num}_{rounds}_{times_each_round}_{real_communication_ratio}_{dummy_trans_ratio}"
@@ -21,6 +21,11 @@ datas_y = np.load(f"{file_name}_train_y.npy")
 datas_list = datas_x.tolist()
 gt_list = datas_y.tolist()
 
+gt_count = [0] * node_num
+for gt in gt_list:
+    gt_count[gt] += 1
+
+print(f"{gt_count = }")
 
 for data in zip(datas_list, gt_list):
 
