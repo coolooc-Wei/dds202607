@@ -42,7 +42,7 @@ def worker_gen_sub_data(args):
 
         for _ in range(times_each_round):
 
-            # target_num = random.randint(0, node_num - 1) # for test
+            target_num = random.randint(0, node_num - 1) # for test
 
             # 🌟 修復 1：決定這回合的全域目標
             is_real_round = (random.random() < real_communication_ratio)
@@ -129,9 +129,9 @@ def worker_gen_sub_data(args):
 # ==========================================
 def gen_data_mp(node_num, rounds, times_each_round, real_communication_ratio, dummy_trans_ratio, USE_ORAM=True):
     if USE_ORAM:
-        file_name = f"sim_datas/oram_simulation_data_{node_num}_{rounds}_{times_each_round}_{real_communication_ratio}_{dummy_trans_ratio}"
+        file_name = f"sim_datas/oram_multi_data_{node_num}_{rounds}_{times_each_round}_{real_communication_ratio}_{dummy_trans_ratio}"
     else:
-        file_name = f"sim_datas/sim_data_{node_num}_{rounds}_{times_each_round}_{real_communication_ratio}_no_oram"
+        file_name = f"sim_datas/oram_multi_data_{node_num}_{rounds}_{times_each_round}_{real_communication_ratio}_no_oram"
         dummy_trans_ratio = 0
 
     os.makedirs("sim_datas", exist_ok=True)
